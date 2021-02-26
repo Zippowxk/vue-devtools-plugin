@@ -1,0 +1,43 @@
+{
+  "name": "vue-vconsole-devtools",
+  "version": "0.0.1",
+  "description": "vConsole vue-devtools plugin. Debug vue anywhere",
+  "main": "./src/index.js",
+  "workspaces": [
+    "packages",
+    "vue-devtools/app-backend",
+    "vue-devtools/app-frontend",
+    "vue-devtools/shared-utils"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zippowxk/vue-vconsole-devtools.git"
+  },
+  "keywords": [
+    "vue-devtools",
+    "vConsole",
+    "vconsole",
+    "vue",
+    "debug",
+    "vue.js",
+    "plugin"
+  ],
+  "author": "xinkai.wang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Zippowxk/vue-vconsole-devtools/issues"
+  },
+  "homepage": "https://github.com/Zippowxk/vue-vconsole-devtools#readme",
+  "dependencies": {
+    "vue": "^2.6.11"
+  },
+  "devDependencies": {
+    "babel-loader": "^8.2.2",
+    "html-loader": "^2.1.1",
+    "webpack": "^5.24.2",
+    "webpack-cli": "^4.5.0"
+  }
+}

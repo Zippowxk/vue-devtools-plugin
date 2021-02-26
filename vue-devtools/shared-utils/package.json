@@ -1,0 +1,6 @@
+{
+  "name": "shared-utils",
+  "version": "0.0.0",
+  "sideEffects": false,
+  "main": "src/index.js"
+}

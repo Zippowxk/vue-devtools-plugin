@@ -1,0 +1,13 @@
+import { Modifier, Padding, Rect } from "../types";
+import { Placement } from "../enums";
+export declare type Options = {
+    element: HTMLElement | string | null;
+    padding: Padding | ((arg0: {
+        popper: Rect;
+        reference: Rect;
+        placement: Placement;
+    }) => Padding);
+};
+export declare type ArrowModifier = Modifier<"arrow", Options>;
+declare const _default: Modifier<"arrow", Options>;
+export default _default;

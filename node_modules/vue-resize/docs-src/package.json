@@ -1,0 +1,38 @@
+{
+  "name": "vue-resize-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo for vue-resize",
+  "author": "Guillaume Chau <guillaume.b.chau@gmail.com>",
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint",
+    "test:e2e": "vue-cli-service test:e2e",
+    "test": "vue-cli-service test:e2e --headless"
+  },
+  "dependencies": {
+    "vue": "^2.5.21"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^3.2.0",
+    "@vue/cli-plugin-e2e-cypress": "^3.2.0",
+    "@vue/cli-plugin-eslint": "^3.2.1",
+    "@vue/cli-service": "^3.2.0",
+    "@vue/eslint-config-standard": "^4.0.0",
+    "stylus": "^0.54.5",
+    "stylus-loader": "^3.0.2",
+    "vue-template-compiler": "^2.5.21"
+  },
+  "postcss": {
+    "plugins": {
+      "autoprefixer": {}
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
+  ],
+  "root": true
+}

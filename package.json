@@ -1,9 +1,9 @@
 {
   "name": "vue-vconsole-devtools",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "vConsole vue-devtools plugin. Debug vue anywhere",
   "main": "./src/index.js",
-  "module": "dist/vue.devtools.vconsole.esm.js",
+  "module": "./dist/vue.devtools.vconsole.esm.js",
   "workspaces": [
     "packages",
     "vue-devtools/app-backend",

@@ -10,18 +10,18 @@ module.exports = {
     vue_plugin: Path.resolve(__dirname, "./packages/index.js")
     // inject: Path.resolve(__dirname, './packages/inject.js')
   },
-  experiments: {
-    outputModule: true,
-  },
+  // experiments: {
+  //   outputModule: true,
+  // },
   output: {
-    // path: Path.resolve(__dirname, "./dev/src"),
-    // filename: "[name].min.js",
-    // library: "vueVconsoleDevtools",
-    // libraryTarget: "umd",
-    // umdNamedDefine: true,
     path: Path.resolve(__dirname, "./dist"),
-    filename: "vue.devtools.vconsole.js",
-    module: true,
+    filename: "[name].js",
+    library: "vueVconsoleDevtools",
+    libraryTarget: "umd",
+    umdNamedDefine: true,
+    // path: Path.resolve(__dirname, "./dist"),
+    // filename: "vue.devtools.vconsole.js",
+    // module: true,
   },
   module: {
     rules: [

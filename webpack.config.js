@@ -23,6 +23,7 @@ module.exports = {
     // filename: "vue.devtools.vconsole.js",
     // module: true,
   },
+  externals:['vue'],
   module: {
     rules: [
       {

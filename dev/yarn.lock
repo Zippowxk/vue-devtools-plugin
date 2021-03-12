@@ -8278,6 +8278,13 @@
   "resolved" "https://registry.npm.taobao.org/vue-template-es2015-compiler/download/vue-template-es2015-compiler-1.9.1.tgz"
   "version" "1.9.1"
 
+"vue-vconsole-devtools@0.0.1":
+  "integrity" "sha512-vZzoi5UfIBbyfEhG6SUJOnzIZRuQ+k0Io12n05obq5wMmvAP9FDBvzS2Czu3h3WjsVDQM4oXc9p4CbqTuT2ZEg=="
+  "resolved" "https://registry.npmjs.org/vue-vconsole-devtools/-/vue-vconsole-devtools-0.0.1.tgz"
+  "version" "0.0.1"
+  dependencies:
+    "vue" "^2.6.11"
+
 "vue@^2 || ^3.0.0-0", "vue@^2.6.11":
   "integrity" "sha1-9evU+mvShpQD4pqJau1JBEVskSM="
   "resolved" "https://registry.npm.taobao.org/vue/download/vue-2.6.12.tgz"

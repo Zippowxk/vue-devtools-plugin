@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "vConsole vue-devtools plugin. Debug vue anywhere",
   "main": "./src/index.js",
+  "module": "dist/vue.devtools.vconsole.esm.js",
   "workspaces": [
     "packages",
     "vue-devtools/app-backend",
@@ -36,8 +37,11 @@
   },
   "devDependencies": {
     "babel-loader": "^8.2.2",
-    "html-loader": "^2.1.1",
-    "webpack": "^5.24.2",
-    "webpack-cli": "^4.5.0"
+    "eslint": "^7.21.0",
+    "eslint-loader": "^4.0.2",
+    "eslint-webpack-plugin": "^2.5.2",
+    "path": "^0.12.7",
+    "raw-loader": "^4.0.2",
+    "webpack": "^4.41.2"
   }
 }

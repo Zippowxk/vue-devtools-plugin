@@ -997,7 +997,7 @@
   dependencies:
     "@types/node" "*"
 
-"@types/json-schema@^7.0.5":
+"@types/json-schema@^7.0.5", "@types/json-schema@^7.0.6":
   "integrity" "sha1-mKmTUWyFnrDVxMjwmDF6nqaNua0="
   "resolved" "https://registry.npm.taobao.org/@types/json-schema/download/@types/json-schema-7.0.7.tgz?cache=0&sync_timestamp=1613378919536&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2F%40types%2Fjson-schema%2Fdownload%2F%40types%2Fjson-schema-7.0.7.tgz"
   "version" "7.0.7"
@@ -1576,7 +1576,7 @@
   "resolved" "https://registry.npm.taobao.org/ajv-keywords/download/ajv-keywords-3.5.2.tgz?cache=0&sync_timestamp=1608062556009&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Fajv-keywords%2Fdownload%2Fajv-keywords-3.5.2.tgz"
   "version" "3.5.2"
 
-"ajv@^6.1.0", "ajv@^6.10.0", "ajv@^6.10.2", "ajv@^6.12.3", "ajv@^6.12.4", "ajv@^6.9.1", "ajv@>=5.0.0":
+"ajv@^6.1.0", "ajv@^6.10.0", "ajv@^6.10.2", "ajv@^6.12.3", "ajv@^6.12.4", "ajv@^6.12.5", "ajv@^6.9.1", "ajv@>=5.0.0":
   "integrity" "sha1-uvWmLoArB9l3A0WG+MO69a3ybfQ="
   "resolved" "https://registry.npm.taobao.org/ajv/download/ajv-6.12.6.tgz"
   "version" "6.12.6"
@@ -5156,6 +5156,15 @@
     "emojis-list" "^3.0.0"
     "json5" "^1.0.1"
 
+"loader-utils@^2.0.0":
+  "integrity" "sha1-5MrOW4FtQloWa18JfhDNErNgZLA="
+  "resolved" "https://registry.npm.taobao.org/loader-utils/download/loader-utils-2.0.0.tgz"
+  "version" "2.0.0"
+  dependencies:
+    "big.js" "^5.2.2"
+    "emojis-list" "^3.0.0"
+    "json5" "^2.1.2"
+
 "locate-path@^3.0.0":
   "integrity" "sha1-2+w7OrdZdYBxtY/ln8QYca8hQA4="
   "resolved" "https://registry.npm.taobao.org/locate-path/download/locate-path-3.0.0.tgz"
@@ -6722,6 +6731,14 @@
     "iconv-lite" "0.4.24"
     "unpipe" "1.0.0"
 
+"raw-loader@^4.0.2":
+  "integrity" "sha1-GqxrfRrRUB5m79rBUixz5ZpYTrY="
+  "resolved" "https://registry.npm.taobao.org/raw-loader/download/raw-loader-4.0.2.tgz"
+  "version" "4.0.2"
+  dependencies:
+    "loader-utils" "^2.0.0"
+    "schema-utils" "^3.0.0"
+
 "read-pkg@^5.1.1":
   "integrity" "sha1-e/KVQ4yloz5WzTDgU7NO5yUMk8w="
   "resolved" "https://registry.npm.taobao.org/read-pkg/download/read-pkg-5.2.0.tgz"
@@ -7079,6 +7096,15 @@
   dependencies:
     "@types/json-schema" "^7.0.5"
     "ajv" "^6.12.4"
+    "ajv-keywords" "^3.5.2"
+
+"schema-utils@^3.0.0":
+  "integrity" "sha1-Z1AvaqK2ai1AMrQnmilEl4oJE+8="
+  "resolved" "https://registry.npm.taobao.org/schema-utils/download/schema-utils-3.0.0.tgz"
+  "version" "3.0.0"
+  dependencies:
+    "@types/json-schema" "^7.0.6"
+    "ajv" "^6.12.5"
     "ajv-keywords" "^3.5.2"
 
 "select-hose@^2.0.0":

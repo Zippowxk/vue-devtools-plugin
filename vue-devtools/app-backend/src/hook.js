@@ -84,12 +84,9 @@ export function installHook (target) {
       }
     }
   }
-  if(!target.__VUE_DEVTOOLS_GLOBAL_HOOK__){
-    target.__VUE_DEVTOOLS_GLOBAL_HOOK__ = hook;
-  }
 
+  const vm = target.__VUE_DEVTOOLS_GLOBAL_HOOK__
   if (target.hasOwnProperty('__VUE_DEVTOOLS_GLOBAL_HOOK__')) return
-
 
   hook.once('init', Vue => {
     hook.Vue = Vue
@@ -144,8 +141,6 @@ export function installHook (target) {
       return hook
     }
   })
-  console.log('!!!!!!target2');
-  console.log(target);
   // Clone deep utility for cloning initial state of the store
   // Forked from https://github.com/planttheidea/fast-copy
   // Last update: 2019-10-30

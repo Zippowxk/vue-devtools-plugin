@@ -28,9 +28,7 @@ const rootInstances = []
 const propModes = ['default', 'sync', 'once']
 
 export const installHooks = function(arg){
-  console.log(arg)
   installHook.call({},arg)
-  console.log(arg)
 }
 export const instanceMap = target.__VUE_DEVTOOLS_INSTANCE_MAP__ = new Map()
 export const functionalVnodeMap = target.__VUE_DEVTOOLS_FUNCTIONAL_VNODE_MAP__ = new Map()
@@ -50,11 +48,9 @@ const captureIds = new Map()
 
 export function initBackend (_bridge) {
   bridge = _bridge
-  console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
   if(!hook){
     hook = target.__VUE_DEVTOOLS_GLOBAL_HOOK__
   }
-  console.log(hook)
   if (hook.Vue) {
     isLegacy = hook.Vue.version && hook.Vue.version.split('.')[0] === '1'
     connect(hook.Vue)
@@ -114,7 +110,7 @@ function connect (Vue) {
 
     bridge.on('enter-instance', id => {
       const instance = findInstanceOrVnode(id)
-      if (instance) highlight(instance)
+      // if (instance) highlight(instance)
     })
 
     bridge.on('leave-instance', unHighlight)

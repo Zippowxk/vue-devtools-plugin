@@ -72,7 +72,9 @@ let app = new Vue({
  */
 
 export function initDevTools (shell) {
+  console.log("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]1",shell)
   initStorage().then(() => {
+    console.log("]]]]]]]]]]]]]]]]]]]]]]]]]]]]]2",shell)
     initApp(shell)
     shell.onReload(() => {
       if (app) {

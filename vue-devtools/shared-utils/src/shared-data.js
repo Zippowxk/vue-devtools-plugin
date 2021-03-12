@@ -50,8 +50,7 @@ export function init (params) {
     // Mandatory params
     bridge = params.bridge
     Vue = params.Vue
-    // persist = !!params.persist
-
+    persist = !!params.persist
     if (persist) {
       if (process.env.NODE_ENV !== 'production') console.log('[shared data] Master init in progress...')
       // Load persisted fields

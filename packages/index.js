@@ -1,15 +1,8 @@
 import VConsolePlugin from './plugin'
 import be from './backend'
-// import back from '../vue-devtools/app-backend/src'
-// import _ from 'app-frontend'
 import {installHooks} from 'app-backend'
-// import s from 'shared-utils'
-// import moduleA from '@moduleb'
-console.log('====================================');
-// console.log(moduleA)
-// console.log(back)
-console.log('====================================');
-// import Vue from 'vue'
+import injectString from './inject.txt'
+installHooks(window)
 let file = `<div id='app'>GeeksForGeeks</div>`
 // let file = `<p>hello world</p>`
 let target;
@@ -23,15 +16,14 @@ class VConsoleVueTab extends VConsolePlugin {
   }
 
   onRenderTab(cb){
-    cb('<iframe id="vue-iframe" src="./devtools.html" style="width:100%;position:absolute;top:0;bottom:0;min-height:100%;"></iframe>');
+    // cb('<iframe id="vue-iframe" src="./devtools.html" style="width:100%;position:absolute;top:0;bottom:0;min-height:100%;"></iframe>');
     // cb('<div id="app">hello</div>');
     // cb('<iframe id="vue-iframe" style="width:100%;position:absolute;top:0;bottom:0;min-height:100%;"></iframe>');
-    // cb(`<iframe id="vue-iframe" srcdoc="${file}" style="width:100%;position:absolute;top:0;bottom:0;min-height:100%;"></iframe>`);
+    cb(`<iframe id="vue-iframe" srcdoc="${file}" style="width:100%;position:absolute;top:0;bottom:0;min-height:100%;"></iframe>`);
   }
   onReady() {
     target = document.getElementById('vue-iframe')
     targetWindow = target.contentWindow;
-    installHooks(window)
     be.initBackendWithTargetWindow(window,targetWindow);
     // do nothing
     // 引入 Vue
@@ -52,12 +44,8 @@ class VConsoleVueTab extends VConsolePlugin {
   onAddTool(callback) {
   }
 
-  onShow() {
-    // injectOnce("./js/inject.js",()=>{
-    //   console.log('====================================');
-    //   console.log("load done");
-    //   console.log('====================================');
-    // })
+  onShow() {    
+    injectOnce(injectString)
   }
 
 } // END Class
@@ -74,11 +62,11 @@ function once(fn){
 
 function inject (scriptContent, done) {
   const script = document.getElementById('vue-iframe').contentWindow.document.createElement('script')
-  // script.textContent = scriptContent
-  script.src = scriptContent;
-  script.onload = done
+  script.text = scriptContent
+  // script.src = scriptContent;
+  // script.onload = done
   document.getElementById('vue-iframe').contentWindow.document.body.appendChild(script)
-  console.log("injected");
+  // console.log("injected!!!!!!!!!!!!!!!!!!");
 }
 
 const initPlugin = function(vConsole){
@@ -88,9 +76,3 @@ const initPlugin = function(vConsole){
 export default {
   initPlugin
 }
-
-
-app = 
-`!!! 5
-  console.log("abc")
-`

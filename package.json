@@ -3,7 +3,6 @@
   "version": "0.0.3",
   "description": "vConsole vue-devtools plugin. Debug vue anywhere",
   "main": "./dist/vue_plugin.js",
-  "module": "./dist/vue.devtools.vconsole.esm.js",
   "workspaces": [
     "packages",
     "vue-devtools/app-backend",
@@ -33,7 +32,7 @@
   },
   "homepage": "https://github.com/Zippowxk/vue-vconsole-devtools#readme",
   "dependencies": {
-    "vue": "^2.6.11"
+    "vue": "^2.6.10"
   },
   "devDependencies": {
     "babel-loader": "^8.2.2",

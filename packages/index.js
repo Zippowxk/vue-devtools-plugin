@@ -45,6 +45,7 @@ function once(fn){
 }
 
 function inject (scriptContent, done) {
+  document.getElementById('vue-iframe').contentWindow.document.write(file) 
   const script = document.getElementById('vue-iframe').contentWindow.document.createElement('script')
   script.text = scriptContent
   document.getElementById('vue-iframe').contentWindow.document.body.appendChild(script)

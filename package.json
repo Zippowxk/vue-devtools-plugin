@@ -1,6 +1,6 @@
 {
   "name": "vue-vconsole-devtools",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "vConsole vue-devtools plugin. Debug vue anywhere",
   "main": "./dist/vue_plugin.js",
   "workspaces": [
@@ -41,6 +41,7 @@
     "eslint-webpack-plugin": "^2.5.2",
     "path": "^0.12.7",
     "raw-loader": "^4.0.2",
-    "webpack": "^4.41.2"
+    "webpack": "^4.41.2",
+    "webpack-cli": "^4.6.0"
   }
 }

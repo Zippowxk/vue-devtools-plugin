@@ -14,7 +14,7 @@ class VConsoleVueTab extends VConsolePlugin {
   }
 
   onRenderTab(cb){
-    cb(`<iframe id="vue-iframe" srcdoc="${file}" style="width:100%;position:absolute;top:0;bottom:0;min-height:100%;"></iframe>`);
+    cb(`<iframe id="vue-iframe" style="width:100%;position:absolute;top:0;bottom:0;min-height:100%;"></iframe>`);
   }
   onReady() {
     target = document.getElementById('vue-iframe')

@@ -32,24 +32,24 @@ Devtools.initPlugin(new VConsole()); // 需要在创建Vue根实例前调用
 1. 只在开发环境下引入
 
    ```javascript
-   const app = new Vue({
+   new Vue({
      render: (h) => h(App),
    }).$mount("#app");
    
    // 在创建跟实例以后调用， 需要借助webpack的异步模块加载能力
    if(process.env.NODE_ENV === "development"){
-     Promise.all([import("vconsole"), import("vue-vconsole-devtools")]).then(
-       (res) => {
-         if (res.length === 2) {
-           // 需要把根实例的构造函数赋值给__VUE_DEVTOOLS_GLOBAL_HOOK__.vue
-           window.__VUE_DEVTOOLS_GLOBAL_HOOK__.Vue = app.constructor;
-           const VConsole = res[0].default;
-           const Devtools = res[1].default;
-           Devtools.initPlugin(new VConsole());
-         }
-       }
-     );
-   }
+      Promise.all([import("vconsole"), import("vue-vconsole-devtools")]).then(
+        (res) => {
+          if (res.length === 2) {
+            Vue.config.devtools = true;
+            window.__VUE_DEVTOOLS_GLOBAL_HOOK__.emit("init",Vue)
+            const VConsole = res[0].default;
+            const Devtools = res[1].default;
+            Devtools.initPlugin(new VConsole());
+          }
+        }
+      );
+    }
    ```
 ### 更新日志
 

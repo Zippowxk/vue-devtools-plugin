@@ -5,15 +5,15 @@
 ![WechatIMG71.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/68d77a8750fb459cab9aab3e09c3b9a0~tplv-k3u1fbpfcp-watermark.image)
 ### 为什么需要本插件：
 
-1. 在Safari和移动端无法直接调试
+1. 在Safari和移动端无法直接调试Vue.js
 2. Electron版本的devtools安装和远程调试配置非常麻烦
 
-**### 功能**
+### 功能
 
 1. 移植了官方Vue-devtools的全部功能
 2. 针对移动端优化了部分操作方式
-
-**### 使用方式**
+3. 现已支持微信端内浏览器
+### 使用方式
 
 1. ```npm i -s vue-vconsole-devtools```
 
@@ -27,7 +27,7 @@ Devtools.initPlugin(new VConsole()); // 需要在创建Vue根实例前调用
 ...
 ```
 
-**### 高级用法**
+### 高级用法
 
 1. 只在开发环境下引入
 
@@ -51,14 +51,16 @@ Devtools.initPlugin(new VConsole()); // 需要在创建Vue根实例前调用
      );
    }
    ```
+### 更新日志
 
-**### 更新日志**
-
-**#### v0.0.3**
-
+#### v0.0.7
+1. 重要更新，解决iOS微信端浏览器兼容性问题
+2. 解决iOS阿里mPass容器兼容性问题
+   
+#### v0.0.3
 1. 优化了打包体积
 
-**### TODO:**
+### TODO:
 
 1. 支持Vue.js 3
 2. 开发脱离vConsole版本

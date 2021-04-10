@@ -5,6 +5,10 @@ import App from "./App.vue";
 Vue.config.devtools = true;
 
 // Devtools.initPlugin(new VConsole());
+new Vue({
+  render: (h) => h(App),
+}).$mount("#app");
+
 const app = new Vue({
   render: (h) => h(App),
 }).$mount("#app");

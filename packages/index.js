@@ -3,7 +3,7 @@ import be from './backend'
 import {installHooks} from 'app-backend'
 import injectString from './inject.txt'
 installHooks(window)
-let file = `<div id='app'>GeeksForGeeks</div>`
+// let file = `<div id='app'>GeeksForGeeks</div>`
 let target;
 let targetWindow;
 const injectOnce = once(inject);
@@ -45,7 +45,10 @@ function once(fn){
 }
 
 function inject (scriptContent, done) {
-  document.getElementById('vue-iframe').contentWindow.document.write(file) 
+  const div = document.getElementById('vue-iframe').contentWindow.document.createElement("div") 
+  div.setAttribute("id","app")
+  document.getElementById('vue-iframe').contentWindow.document.body.appendChild(div)
+
   const script = document.getElementById('vue-iframe').contentWindow.document.createElement('script')
   script.text = scriptContent
   document.getElementById('vue-iframe').contentWindow.document.body.appendChild(script)

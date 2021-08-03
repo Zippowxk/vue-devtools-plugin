@@ -14,7 +14,7 @@
 2. 针对移动端优化了部分操作方式
 3. 现已支持微信端内浏览器
 ### 使用方式
-
+#### NPM方式引入
 1. ```npm i -s vue-vconsole-devtools```
 
 2. 在工程中入口文件 （如`src/main.js`）
@@ -26,7 +26,17 @@ import Devtools from 'vue-vconsole-devtools'
 Devtools.initPlugin(new VConsole()); // 需要在创建Vue根实例前调用
 ...
 ```
+#### CDN方式引入
 
+```html
+<script src="https://unpkg.com/vconsole/dist/vconsole.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue-vconsole-devtools@0.0.7/dist/vue_plugin.js"></script>
+<script>
+  var vConsole = new window.VConsole();
+  const Devtools = window.vueVconsoleDevtools["default"];
+  Devtools.initPlugin(vConsole);
+</script>
+```
 ### 高级用法
 
 1. 只在开发环境下引入

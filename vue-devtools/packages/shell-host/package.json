@@ -1,0 +1,19 @@
+{
+  "name": "@vue-devtools/shell-host",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "cross-env TAILWIND_MODE=watch webpack serve",
+    "build": "cross-env webpack build"
+  },
+  "dependencies": {
+    "@vue-devtools/app-backend-core": "^0.0.0",
+    "@vue-devtools/app-frontend": "^0.0.0",
+    "@vue-devtools/shared-utils": "^0.0.0"
+  },
+  "devDependencies": {
+    "cross-env": "^5.2.0",
+    "webpack": "^5.35.1",
+    "webpack-cli": "^4.6.0"
+  }
+}

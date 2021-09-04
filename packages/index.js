@@ -1,8 +1,10 @@
 import VConsolePlugin from './plugin'
 import be from './backend'
-import {installHooks} from 'app-backend'
 import injectString from './inject.txt'
-installHooks(window)
+import { installHook } from '@back/hook'
+
+installHook(window)
+
 // let file = `<div id='app'>GeeksForGeeks</div>`
 let target;
 let targetWindow;
@@ -19,6 +21,7 @@ class VConsoleVueTab extends VConsolePlugin {
   onReady() {
     target = document.getElementById('vue-iframe')
     targetWindow = target.contentWindow;
+    target.__vdevtools__injected = true
     be.initBackendWithTargetWindow(window,targetWindow);    
   }
 

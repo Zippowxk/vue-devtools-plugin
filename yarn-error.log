@@ -1,0 +1,76 @@
+Arguments: 
+  /Users/wxkmac/.nvm/versions/node/v15.10.0/bin/node /usr/local/bin/yarn
+
+PATH: 
+  /Users/wxkmac/.nvm/versions/node/v15.10.0/bin:/usr/local/Cellar/smlnj/110.84/bin:/bin:/usr/bin:/usr/local/bin:/Users/wxkmac/Documents/opt/apache-maven-3.5.4/bin:/Applications/Visual Studio Code.app/Contents/Resources/app/bin:/Users/wxkmac/.swiftenv/shims:/Library/Frameworks/Python.framework/Versions/3.6/bin:/Users/wxkmac/.rvm/gems/ruby-2.3.0/bin:/Users/wxkmac/.rvm/gems/ruby-2.3.0@global/bin:/Users/wxkmac/.rvm/rubies/ruby-2.3.0/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/VMware Fusion.app/Contents/Public:/usr/local/go/bin:/usr/local/share/dotnet:/opt/X11/bin:/Library/Apple/usr/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/Users/wxkmac/.rvm/bin:/Users/wxkmac/Documents/opt/apache-maven-3.5.4/bin//bin:/Users/wxkmac/Library/Android/sdk/platform-tools:/Users/wxkmac/Library/Python/2.7/bin:/usr/local/mysql/bin:/usr/hadoop/hadoop-2.8.0/hive/bin:/usr/hadoop/hadoop-2.8.0/hive/conf:/Users/wxkmac/.rvm/bin
+
+Yarn version: 
+  1.15.2
+
+Node version: 
+  15.10.0
+
+Platform: 
+  darwin x64
+
+Trace: 
+  SyntaxError: /Users/wxkmac/Documents/Github/vue-vconsole-devtools/package.json: Unexpected token / in JSON at position 783
+      at JSON.parse (<anonymous>)
+      at /usr/local/lib/node_modules/yarn/lib/cli.js:1625:59
+      at Generator.next (<anonymous>)
+      at step (/usr/local/lib/node_modules/yarn/lib/cli.js:304:30)
+      at /usr/local/lib/node_modules/yarn/lib/cli.js:315:13
+
+npm manifest: 
+  {
+    "name": "vue-vconsole-devtools",
+    "version": "0.0.7",
+    "description": "vConsole vue-devtools plugin. Debug vue anywhere",
+    "main": "./dist/vue_plugin.js",
+    "private": true,
+    "workspaces": [
+      "./vue-devtools/packages/*"
+    ],
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/Zippowxk/vue-vconsole-devtools.git"
+    },
+    "keywords": [
+      "vue-devtools",
+      "vConsole",
+      "vconsole",
+      "vue",
+      "debug",
+      "vue.js",
+      "plugin"
+    ],
+    "author": "xinkai.wang",
+    "license": "MIT",
+    "bugs": {
+      "url": "https://github.com/Zippowxk/vue-vconsole-devtools/issues"
+    },
+    "homepage": "https://github.com/Zippowxk/vue-vconsole-devtools#readme",
+    "dependencies": {
+      // "vue": "^2.6.10"
+    },
+    "devDependencies": {
+      "babel-loader": "^8.2.2",
+      "eslint": "^7.21.0",
+      "eslint-loader": "^4.0.2",
+      "eslint-webpack-plugin": "^2.5.2",
+      "path": "^0.12.7",
+      "raw-loader": "^4.0.2",
+      "terser-webpack-plugin": "^5.1.1",
+      "webpack": "^5.35.1",
+      "webpack-cli": "^4.6.0"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile

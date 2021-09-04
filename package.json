@@ -3,14 +3,14 @@
   "version": "0.0.7",
   "description": "vConsole vue-devtools plugin. Debug vue anywhere",
   "main": "./dist/vue_plugin.js",
+  "private": true,
   "workspaces": [
-    "packages",
-    "vue-devtools/app-backend",
-    "vue-devtools/app-frontend",
-    "vue-devtools/shared-utils"
+    "./vue-devtools/packages/*"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "buildev": "webpack --mode development"
   },
   "repository": {
     "type": "git",
@@ -32,7 +32,6 @@
   },
   "homepage": "https://github.com/Zippowxk/vue-vconsole-devtools#readme",
   "dependencies": {
-    "vue": "^2.6.10"
   },
   "devDependencies": {
     "babel-loader": "^8.2.2",
@@ -41,7 +40,8 @@
     "eslint-webpack-plugin": "^2.5.2",
     "path": "^0.12.7",
     "raw-loader": "^4.0.2",
-    "webpack": "^4.41.2",
+    "terser-webpack-plugin": "^5.1.1",
+    "webpack": "^5.35.1",
     "webpack-cli": "^4.6.0"
   }
 }

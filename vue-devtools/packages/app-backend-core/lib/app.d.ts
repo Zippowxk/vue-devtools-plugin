@@ -1,0 +1,11 @@
+import { AppRecord, SimpleAppRecord, AppRecordOptions, BackendContext } from '@vue-devtools/app-backend-api';
+import { App } from '@vue/devtools-api';
+export declare function registerApp(options: AppRecordOptions, ctx: BackendContext): Promise<void>;
+export declare function selectApp(record: AppRecord, ctx: BackendContext): Promise<void>;
+export declare function mapAppRecord(record: AppRecord): SimpleAppRecord;
+export declare function getAppRecordId(app: any): number;
+export declare function getAppRecord(app: any, ctx: BackendContext): Promise<AppRecord>;
+export declare function waitForAppsRegistration(): Promise<void>;
+export declare function sendApps(ctx: BackendContext): Promise<void>;
+export declare function removeApp(app: App, ctx: BackendContext): Promise<void>;
+export declare function _legacy_getAndRegisterApps(Vue: any, ctx: BackendContext): Promise<void>;

@@ -1,5 +1,7 @@
 import { initBackend } from '@back'
 import { Bridge } from '@utils/bridge'
+// import _ from './vue-devtools-build/backend.js'
+// import __ from './vue-devtools-build/hook.js'
 
 const initBackendWithTargetWindow = function(win,targetWindow){
   const bridge = new Bridge({

@@ -1,10 +1,15 @@
-import {createApp} from 'vue/dist/vue.esm-bundler.js'
-import App from './App.vue'
 import VConsole from "vconsole";
-// import Devtools from 'vue-vconsole-devtools'
 import Devtools from './debug/vue_plugin.js'
+import {createApp} from './debug/vue.esm-bundler.js'
+import App from './App.vue'
+// import Devtools from 'vue-vconsole-devtools'
 // Vue.devtools = true;
-createApp(App).mount('#app')
+Devtools.initPlugin(new VConsole());
 setTimeout(() => {
-  Devtools.initPlugin(new VConsole());
+const app = createApp(App).mount('#app')
 }, 3000);
+setTimeout(() => {
+  if ('__VUE_DEVTOOLS_GLOBAL_HOOK__' in window) {
+    // window.__VUE_DEVTOOLS_GLOBAL_HOOK__.emit("init",app)
+}
+}, 0);

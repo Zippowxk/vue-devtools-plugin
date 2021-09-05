@@ -22,9 +22,6 @@ function installHook(target, isIframe = false) {
                 iframe.__vdevtools__injected = true;
                 const inject = () => {
                     try {
-                       console.log('====================================');
-                        console.log("install hook iframe:",iframe);
-                        console.log('====================================');
                         iframe.contentWindow.__VUE_DEVTOOLS_IFRAME__ = iframe;
                         const script = iframe.contentDocument.createElement('script');
                         script.textContent = ';(' + installHook.toString() + ')(window, true)';
@@ -51,8 +48,9 @@ function installHook(target, isIframe = false) {
             clearInterval(iframeTimer);
         }
     }, 1000);
-    if (Object.prototype.hasOwnProperty.call(target, '__VUE_DEVTOOLS_GLOBAL_HOOK__'))
-        return;
+    if (Object.prototype.hasOwnProperty.call(target, '__VUE_DEVTOOLS_GLOBAL_HOOK__')){
+       return
+    }
     let hook;
     if (isIframe) {
         const sendToParent = cb => {
@@ -89,9 +87,6 @@ function installHook(target, isIframe = false) {
         };
     }
     else {
-        console.log('====================================');
-        console.log("install hook not iframe");
-        console.log('====================================');
         hook = {
             Vue: null,
             _buffer: [],
@@ -227,10 +222,12 @@ function installHook(target, isIframe = false) {
             };
         });
     }
+    debugger
     Object.defineProperty(target, '__VUE_DEVTOOLS_GLOBAL_HOOK__', {
         get() {
             return hook;
-        }
+        },
+        configurable: true,
     });
     // Clone deep utility for cloning initial state of the store
     // Forked from https://github.com/planttheidea/fast-copy

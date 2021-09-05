@@ -2,7 +2,8 @@ import VConsolePlugin from './plugin'
 import be from './backend'
 import injectString from './inject.txt'
 import { installHook } from '@back/hook'
-
+// require('@back/hook')
+// require('@back')
 installHook(window)
 
 // let file = `<div id='app'>GeeksForGeeks</div>`
@@ -22,7 +23,7 @@ class VConsoleVueTab extends VConsolePlugin {
     target = document.getElementById('vue-iframe')
     targetWindow = target.contentWindow;
     target.__vdevtools__injected = true
-    be.initBackendWithTargetWindow(window,targetWindow);    
+    be.initBackendWithTargetWindow(window,targetWindow);
   }
 
   onAddTopBar(callback) {

@@ -90,14 +90,14 @@ function initSharedData(params) {
             initRetryCount = 0;
             initRetryInterval = setInterval(() => {
                 if (process.env.NODE_ENV !== 'production')
-                    console.log('[shared data] Master init retrying...');
+                    console.log('[shared data] Master init retrying...:',initRetryCount);
                 bridge.send('shared-data:master-init-waiting');
                 initRetryCount++;
                 if (initRetryCount > 30) {
                     clearInterval(initRetryInterval);
                     console.error('[shared data] Master init failed');
                 }
-            }, 2000);
+            }, 1000);
         }
         else {
             if (process.env.NODE_ENV !== 'production')

@@ -9,7 +9,7 @@ new Vue({
 }).$mount("#app");
 
 if(process.env.NODE_ENV === "development"){
-  Promise.all([import("vconsole"), import("vue-vconsole-devtools")]).then(
+  Promise.all([import("vconsole"), import("./debug/vue_plugin.js")]).then(
     (res) => {
       if (res.length === 2) {
         Vue.config.devtools = true;

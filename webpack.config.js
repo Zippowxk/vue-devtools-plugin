@@ -69,7 +69,7 @@ module.exports = {
             switches: false,
             toplevel: false,
             typeofs: false,
-
+            drop_console: true,
             // a few flags with noticable gains/speed ratio
             // numbers based on out of the box vendor bundle
             booleans: true,

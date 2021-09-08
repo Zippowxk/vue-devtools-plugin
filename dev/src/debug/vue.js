@@ -5302,7 +5302,7 @@
 
     render: function render () {
       var slot = this.$slots.default;
-      debugger
+      // debugger
       var vnode = getFirstComponentChild(slot);
       var componentOptions = vnode && vnode.componentOptions;
       if (componentOptions) {

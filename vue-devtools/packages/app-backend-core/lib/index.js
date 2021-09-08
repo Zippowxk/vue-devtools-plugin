@@ -7,7 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.initBackend = void 0;
 const app_backend_api_1 = require("@vue-devtools/app-backend-api");
 const shared_utils_1 = require("@vue-devtools/shared-utils");
-const global_hook_1 = require("./global-hook");
+const global_hook_1 = {hook:window['__VUE_DEVTOOLS_GLOBAL_HOOK__']}//require("./global-hook");
 const subscriptions_1 = require("./util/subscriptions");
 const highlighter_1 = require("./highlighter");
 const timeline_1 = require("./timeline");
@@ -27,6 +27,7 @@ async function initBackend(bridge) {
         persist: false
     });
     page_config_1.initOnPageConfig();
+    // global_hook_1.hook = window['__VUE_DEVTOOLS_GLOBAL_HOOK__']
     if (!connected) {
         // connected = false
         ctx = shared_utils_1.target.__vdevtools_ctx = app_backend_api_1.createBackendContext({
@@ -257,6 +258,10 @@ function connectBridge() {
     });
     // Apps
     ctx.bridge.on(shared_utils_1.BridgeEvents.TO_BACK_APP_LIST, () => {
+        console.log('====================================');
+        console.log('TO_BACK_APP_LIST');
+        console.log('====================================');
+        debugger
         app_1.sendApps(ctx);
     });
     ctx.bridge.on(shared_utils_1.BridgeEvents.TO_BACK_APP_SELECT, async (id) => {

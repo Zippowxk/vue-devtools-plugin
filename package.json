@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "description": "vConsole vue-devtools plugin. Debug vue anywhere",
   "main": "./dist/vue_plugin.js",
-  "private": true,
-  "workspaces": [
-    "./vue-devtools/packages/*"
-  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack",

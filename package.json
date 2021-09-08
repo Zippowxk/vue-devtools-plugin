@@ -1,6 +1,6 @@
 {
   "name": "vue-vconsole-devtools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "vConsole vue-devtools plugin. Debug vue anywhere",
   "main": "./dist/vue_plugin.js",
   "scripts": {
@@ -28,8 +28,6 @@
     "url": "https://github.com/Zippowxk/vue-vconsole-devtools/issues"
   },
   "homepage": "https://github.com/Zippowxk/vue-vconsole-devtools#readme",
-  "dependencies": {
-  },
   "devDependencies": {
     "babel-loader": "^8.2.2",
     "eslint": "^7.21.0",

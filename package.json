@@ -10,7 +10,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack",
-    "buildev": "webpack --mode development"
+    "build:dev": "webpack --mode development",
+    "build:inject": "cd vue-devtools/packages/shell-host && yarn build"
   },
   "repository": {
     "type": "git",

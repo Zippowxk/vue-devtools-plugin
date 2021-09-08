@@ -1,11 +1,12 @@
 import VConsolePlugin from './plugin'
 import be from './backend'
 import injectString from './inject.txt'
+// import hookString from './hook.txt'
 import { installHook } from '@back/hook'
 // require('@back/hook')
 // require('@back')
 installHook(window)
-
+// injectHook(hookString)
 // let file = `<div id='app'>GeeksForGeeks</div>`
 let target;
 let targetWindow;
@@ -62,6 +63,16 @@ const initPlugin = function(vConsole){
   var tab = new VConsoleVueTab('vue', 'Vue');
   vConsole.addPlugin(tab);
 }
+
+
+
+// function injectHook (injectContent) {
+//   const script = window.document.createElement('script')
+//   script.text = injectContent
+//   window.document.body.appendChild(script)
+// }
+
+
 export default {
   initPlugin
 }

@@ -27,7 +27,7 @@ async function initBackend(bridge) {
         persist: false
     });
     page_config_1.initOnPageConfig();
-    // global_hook_1.hook = window['__VUE_DEVTOOLS_GLOBAL_HOOK__']
+    global_hook_1.hook = window['__VUE_DEVTOOLS_GLOBAL_HOOK__']
     if (!connected) {
         // connected = false
         ctx = shared_utils_1.target.__vdevtools_ctx = app_backend_api_1.createBackendContext({

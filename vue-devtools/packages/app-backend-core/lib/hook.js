@@ -48,8 +48,9 @@ function installHook(target, isIframe = false) {
             clearInterval(iframeTimer);
         }
     }, 1000);
-    if (Object.prototype.hasOwnProperty.call(target, '__VUE_DEVTOOLS_GLOBAL_HOOK__')){
-       return
+    if (Object.prototype.hasOwnProperty.call(target, '__VUE_DEVTOOLS_GLOBAL_HOOK__')) {
+        target.__VUE_DEVTOOLS_GLOBAL_HOOK__.listeners = listeners
+        return
     }
     let hook;
     if (isIframe) {
@@ -95,7 +96,19 @@ function installHook(target, isIframe = false) {
             storeModules: null,
             flushStoreModules: null,
             apps: [],
+            listeners: listeners,
             _replayBuffer(event) {
+                const buffer = this._buffer;
+                this._buffer = [];
+                for (let i = 0, l = buffer.length; i < l; i++) {
+                    const allArgs = buffer[i];
+                    allArgs[0] === event
+                        // eslint-disable-next-line prefer-spread
+                        ? this.emit.apply(this, allArgs)
+                        : this._buffer.push(allArgs);
+                }
+            },
+            flushAllBufferEvents(){
                 const buffer = this._buffer;
                 this._buffer = [];
                 for (let i = 0, l = buffer.length; i < l; i++) {
@@ -222,12 +235,10 @@ function installHook(target, isIframe = false) {
             };
         });
     }
-    debugger
     Object.defineProperty(target, '__VUE_DEVTOOLS_GLOBAL_HOOK__', {
         get() {
             return hook;
-        },
-        configurable: true,
+        }
     });
     // Clone deep utility for cloning initial state of the store
     // Forked from https://github.com/planttheidea/fast-copy

@@ -19,6 +19,7 @@ module.exports = {
     library: "vueVconsoleDevtools",
     libraryTarget: "umd",
     umdNamedDefine: true,
+    globalObject: 'this',
     // path: Path.resolve(__dirname, "./dev-vue3/src/debug"),
     // filename: "vue.devtools.vconsole.js",
     // module: true,

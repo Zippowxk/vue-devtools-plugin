@@ -1,5 +1,5 @@
 {
-  "name": "vue-vconsole-devtools",
+  "name": "vue-vconsole-devtools-project",
   "version": "1.0.2",
   "description": "vConsole vue-devtools plugin. Debug vue anywhere",
   "main": "./dist/vue_plugin.js",
@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack",
     "build:dev": "webpack --mode development",
-    "build:inject": "cd vue-devtools/packages/shell-host && yarn build"
+    "build:inject": "cd vue-devtools/packages/shell-host && yarn build",
+    "release": "cd packages && npm version patch && npm publish"
   },
   "repository": {
     "type": "git",

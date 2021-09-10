@@ -15,7 +15,7 @@ module.exports = {
   //   outputModule: true,
   // },
   output: {
-    path: Path.resolve(__dirname, "./dist"),
+    path: Path.resolve(__dirname, "./packages/dist"),
     filename: "[name].js",
     library: "vueVconsoleDevtools",
     libraryTarget: "umd",

@@ -2,10 +2,10 @@
 // import __ from './debug/hook.js'
 // window.__VUE_PROD_DEVTOOLS__ = true
 import VConsole from "vconsole";
-import Devtools from './debug/vue_plugin.js'
-import {createApp} from './debug/vue.esm-bundler.js'
+import { initPlugin } from './debug/vue_plugin.js'
+import { createApp } from './debug/vue.esm-bundler.js'
 // import Vue from 'vue/dist/vue.cjs.js'
-import Vue from 'vue/dist/vue.global.js'
+// import Vue from 'vue/dist/vue.global.js'
 // const Vue = require('vue/dist/vue.global.js')
 import App from './App.vue'
 // console.log(_,__)
@@ -26,7 +26,7 @@ import App from './App.vue'
 // 		}
 // 	},
 // };
-Devtools.initPlugin(new VConsole());
+initPlugin(new VConsole());
 // console.log("!!!!!!!!");
 // console.log(Vue)
 // window.__VUE_DEVTOOLS_GLOBAL_HOOK__.emit('init', Vue)

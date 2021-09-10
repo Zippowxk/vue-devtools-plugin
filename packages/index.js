@@ -59,7 +59,7 @@ function inject (scriptContent, done) {
   document.getElementById('vue-iframe').contentWindow.document.body.appendChild(script)
 }
 
-const initPlugin = function(vConsole){
+export const initPlugin = function(vConsole){
   var tab = new VConsoleVueTab('vue', 'Vue');
   vConsole.addPlugin(tab);
 }
@@ -73,6 +73,12 @@ const initPlugin = function(vConsole){
 // }
 
 
-export default {
-  initPlugin
-}
+// Object.defineProperty(window,'process',{
+//   get(){
+//     return {platform:'browers'}
+//   },
+//   configurable: false
+// })
+// export default {
+//   initPlugin
+// }

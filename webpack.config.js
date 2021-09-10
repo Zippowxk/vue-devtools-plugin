@@ -1,6 +1,7 @@
 const pkg = require("./package.json");
 const Path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 module.exports = {
   mode: "production",
@@ -45,7 +46,9 @@ module.exports = {
       },
     ],
   },
-  plugins: [],
+  plugins: [
+    // new BundleAnalyzerPlugin()
+  ],
   optimization: {
     // 1. 这个配置必须
     minimizer: [

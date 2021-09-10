@@ -79,6 +79,6 @@ export const initPlugin = function(vConsole){
 //   },
 //   configurable: false
 // })
-// export default {
-//   initPlugin
-// }
+export default {
+  initPlugin
+}

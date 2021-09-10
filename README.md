@@ -2,9 +2,13 @@
 
 `Vue-vConsole-devtools` 是一款`vConsole`插件，把`Vue.js`官方调试工具`vue-devtools`移植到移动端，可以直接在移动端查看调试`Vue.js`应用
 
-[CodePen Sample Code](https://codepen.io/zippowxk/pen/RwVBgmp)
+### Preview
+[CodePen Sample Code for Vue2](https://codepen.io/zippowxk/pen/RwVBgmp)
+
+[CodePen Sample Code for Vue3](https://codepen.io/zippowxk/pen/QWgpJbX)
 
 ![WechatIMG71.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/68d77a8750fb459cab9aab3e09c3b9a0~tplv-k3u1fbpfcp-watermark.image)
+
 ### 为什么需要本插件：
 
 1. 在Safari和移动端无法直接调试Vue.js
@@ -24,18 +28,18 @@
 ```javascript
 ...
 import VConsole from "vconsole";
-import Devtools from 'vue-vconsole-devtools'
-Devtools.initPlugin(new VConsole()); // 需要在创建Vue根实例前调用
+import { initPlugin } from 'vue-vconsole-devtools'
+initPlugin(new VConsole()); // 需要在创建Vue根实例前调用
 ...
 ```
 #### CDN方式引入
 
 ```html
 <script src="https://unpkg.com/vconsole/dist/vconsole.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/vue-vconsole-devtools@0.0.7/dist/vue_plugin.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue-vconsole-devtools@1.0.5/dist/vue_plugin.js"></script>
 <script>
   var vConsole = new window.VConsole();
-  const Devtools = window.vueVconsoleDevtools["default"];
+  const Devtools = window.vueVconsoleDevtools
   Devtools.initPlugin(vConsole);
 </script>
 ```
@@ -64,6 +68,16 @@ Devtools.initPlugin(new VConsole()); // 需要在创建Vue根实例前调用
     }
    ```
 ### 更新日志
+
+#### v1.0.5
+1. 兼容CDN引入，优化引入方式
+2. 兼容ES6 解构运算符引入方式
+
+
+#### v1.0.0
+1. 重大更新，升级Vue-devtools V6
+2. 兼容Vue3
+
 
 #### v0.0.7
 1. 重要更新，解决iOS微信端浏览器兼容性问题

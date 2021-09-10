@@ -7,7 +7,7 @@
 
 [CodePen Sample Code for Vue3](https://codepen.io/zippowxk/pen/QWgpJbX)
 
-![WechatIMG71.png](https://p6-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/68d77a8750fb459cab9aab3e09c3b9a0~tplv-k3u1fbpfcp-watermark.image)
+![WechatIMG71.png](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fea9edf286c9400a94e72895f8a3c4f1~tplv-k3u1fbpfcp-watermark.image)
 
 ### 为什么需要本插件：
 

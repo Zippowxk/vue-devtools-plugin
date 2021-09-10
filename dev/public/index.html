@@ -5,9 +5,18 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>vue</title>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/vConsole/3.9.1/vconsole.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/vue-vconsole-devtools@1.0.5/dist/vue_plugin.js'></script>
   </head>
   <body>
     <div id="app"></div>
     <!-- built files will be auto injected -->
+    <script>
+      const vConsole = new window.VConsole();
+      const Devtools = window.vueVconsoleDevtools;
+      Devtools.initPlugin(vConsole);
+      // window.__VUE_DEVTOOLS_GLOBAL_HOOK__.emit('init', Vue)
+      // Vue.config.devtools = true;
+    </script>
   </body>
 </html>

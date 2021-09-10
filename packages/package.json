@@ -1,6 +1,25 @@
 {
-  "name": "vue-vconsole-plugin",
-  "version": "0.0.0",
-  "description": "",
-  "main": "index.js"
+  "name": "vue-vconsole-devtools",
+  "version": "1.0.2",
+  "description": "vConsole vue-devtools plugin. Debug vue anywhere",
+  "main": "../dist/vue_plugin.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zippowxk/vue-vconsole-devtools.git"
+  },
+  "keywords": [
+    "vue-devtools",
+    "vConsole",
+    "vconsole",
+    "vue",
+    "debug",
+    "vue.js",
+    "plugin"
+  ],
+  "author": "xinkai.wang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Zippowxk/vue-vconsole-devtools/issues"
+  },
+  "homepage": "https://github.com/Zippowxk/vue-vconsole-devtools#readme",
 }

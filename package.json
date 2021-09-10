@@ -37,6 +37,11 @@
     "raw-loader": "^4.0.2",
     "terser-webpack-plugin": "^5.1.1",
     "webpack": "^5.35.1",
+    "webpack-bundle-analyzer": "^4.4.2",
     "webpack-cli": "^4.6.0"
-  }
+  },
+  "private": true,
+  "workspaces": [
+    "vue-devtools/packages/*"
+  ]
 }

@@ -93,7 +93,7 @@ initPlugin(new VConsole()); // 需要在创建Vue根实例前调用
 
 ### TODO:
 
-1. 支持Vue.js 3
+1. 支持Vue.js 3 ✅
 2. 开发脱离vConsole版本
 3. webpack plugin
 

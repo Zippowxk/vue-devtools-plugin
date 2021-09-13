@@ -7,8 +7,13 @@
 
 [CodePen Sample Code for Vue3](https://codepen.io/zippowxk/pen/QWgpJbX)
 
-![WechatIMG71.png](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fea9edf286c9400a94e72895f8a3c4f1~tplv-k3u1fbpfcp-watermark.image)
+桌面使用：
 
+![屏幕录制2021-09-10 16.53.29.gif](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2c0f6bf40da6485f9a64b0f0d2ac4f31~tplv-k3u1fbpfcp-watermark.image)
+
+移动端使用：
+
+![RPReplay_Final1631267658.gif](https://p9-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/8e66c2beafc34250921c26e1cdbd618b~tplv-k3u1fbpfcp-watermark.image)
 ### 为什么需要本插件：
 
 1. 在Safari和移动端无法直接调试Vue.js

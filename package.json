@@ -8,7 +8,7 @@
     "build": "webpack",
     "build:dev": "webpack --mode development",
     "build:inject": "cd vue-devtools/packages/shell-host && yarn build",
-    "release": "npm version patch && cd packages && npm version patch && npm publish"
+    "release": "sh shell/Release.sh"
   },
   "repository": {
     "type": "git",

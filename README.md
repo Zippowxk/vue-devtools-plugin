@@ -37,13 +37,13 @@ import { initPlugin } from 'vue-vconsole-devtools'
 initPlugin(new VConsole()); // 需要在创建Vue根实例前调用
 ...
 ```
-如果devtools中没有加载出你的应用 请添加如下代码
+3. 如果devtools中没有加载出你的应用 请添加如下代码
+
 ```javascript
 // Vue 2.x
 Vue.config.devtools = true;
 window.__VUE_DEVTOOLS_GLOBAL_HOOK__.emit("init",Vue)
 ```
-
 
 #### CDN方式引入
 

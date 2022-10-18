@@ -10,6 +10,9 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
+    "typeRoots": [
+      "node_modules/@types"
+    ],
     "types": [
       "chrome",
       "node",

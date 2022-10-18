@@ -1,11 +1,10 @@
 // import _ from './debug/backend.js'
 // import __ from './debug/hook.js'
 // window.__VUE_PROD_DEVTOOLS__ = true
-import VConsole from "vconsole";
+// import VConsole from "vconsole";
 // import { initPlugin } from './debug/vue_plugin.js'
-import Devtools from './debug/vue_plugin.js'
-// import { createApp } from './debug/vue.esm-bundler.js'
-import { createApp } from 'vue/dist/vue.esm-bundler.js'
+// import Devtools from './debug/vue_plugin.js'
+import { createApp } from './debug/vue.esm-bundler.js'
 // import Vue from 'vue/dist/vue.cjs.js'
 // import Vue from 'vue/dist/vue.global.js'
 // const Vue = require('vue/dist/vue.global.js')
@@ -28,16 +27,36 @@ import App from './App.vue'
 // 		}
 // 	},
 // };
-Devtools.initPlugin(new VConsole());
+// Devtools.initPlugin(new VConsole());
 // console.log("!!!!!!!!");
 // console.log(Vue)
 // window.__VUE_DEVTOOLS_GLOBAL_HOOK__.emit('init', Vue)
 
+import eruda from 'eruda' // 引入工具包
+import Devtools from '../../packages/dist/vue_plugin.js'
 
-createApp(App).mount('#app')
-// createApp(App).use(devt).mount('#app')
+// setTimeout(()=> {
+//   window.__VUE_DEVTOOLS_GLOBAL_HOOK__.enabled = true
+// }, 500)
+// import VConsole from "vconsole";
+// import Devtools from 'vue-vconsole-devtools'
+
+// Devtools.initPlugin(new VConsole());
+
+
+// window.__VUE_DEVTOOLS_GLOBAL_HOOK__.Vue = App.constructor;
+
+const app = createApp(App)
+
+app.mount('#app')
+
+eruda.init() // 初始化
+// Devtools.initPlugin(eruda)
+setTimeout(() => {
+  Devtools.initPlugin(eruda)
+}, 5000);
 // 
-// app['config'] = {devtools: true}
+app['config'] = {devtools: true}
 
 // setTimeout(() => {
 //   if ('__VUE_DEVTOOLS_GLOBAL_HOOK__' in window) {

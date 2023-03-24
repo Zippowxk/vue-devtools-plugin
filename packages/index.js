@@ -21,10 +21,12 @@ class VConsoleVueTab extends VConsolePlugin {
     cb(`<iframe id="vue-iframe" style="width:100%;position:absolute;top:0;bottom:0;min-height:100%;"></iframe>`);
   }
   onReady() {
-    target = document.getElementById('vue-iframe')
-    targetWindow = target.contentWindow;
-    target.__vdevtools__injected = true
-    be.initBackendWithTargetWindow(window,targetWindow);
+    setTimeout(() => {
+      target = document.getElementById('vue-iframe')
+      targetWindow = target.contentWindow;
+      target.__vdevtools__injected = true
+      be.initBackendWithTargetWindow(window,targetWindow);
+    }, 0)
   }
 
   onAddTopBar(callback) {

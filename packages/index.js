@@ -3,6 +3,7 @@ import be from './backend'
 import injectString from './inject.txt'
 // import hookString from './hook.txt'
 import { installHook } from '@back/hook'
+
 // require('@back/hook')
 // require('@back')
 installHook(window)

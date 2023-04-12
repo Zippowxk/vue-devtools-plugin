@@ -1,7 +1,7 @@
-import { camelize, getComponentName, getCustomRefDetails, has, set } from '@vue-devtools/shared-utils'
-import { ComponentState, HookPayloads, Hooks, InspectedComponentData } from '@vue/devtools-api'
-import SharedData from '@vue-devtools/shared-utils/lib/shared-data'
+import { camelize, getComponentName, getCustomRefDetails, StateEditor, SharedData } from '@vue-devtools/shared-utils'
+import { ComponentState, CustomState, HookPayloads, Hooks, InspectedComponentData } from '@vue/devtools-api'
 import { functionalVnodeMap, instanceMap } from './tree'
+import 'core-js/modules/es.object.entries'
 
 /**
  * Get the detailed information of an inspected instance.
@@ -14,7 +14,7 @@ export function getInstanceDetails (instance): InspectedComponentData {
 
     const fakeInstance = {
       $options: vnode.fnOptions,
-      ...(vnode.devtoolsMeta?.renderContext.props)
+      ...(vnode.devtoolsMeta?.renderContext.props),
     }
 
     if (!fakeInstance.$options.props && vnode.devtoolsMeta?.renderContext.props) {
@@ -29,7 +29,7 @@ export function getInstanceDetails (instance): InspectedComponentData {
       name: getComponentName(vnode.fnOptions),
       file: instance.type ? instance.type.__file : vnode.fnOptions.__file || null,
       state: getFunctionalInstanceState(fakeInstance),
-      functional: true
+      functional: true,
     }
 
     return data
@@ -39,7 +39,7 @@ export function getInstanceDetails (instance): InspectedComponentData {
     id: instance.__VUE_DEVTOOLS_UID__,
     name: getInstanceName(instance),
     state: getInstanceState(instance),
-    file: null
+    file: null,
   }
 
   let i
@@ -53,6 +53,7 @@ export function getInstanceDetails (instance): InspectedComponentData {
 function getInstanceState (instance): ComponentState[] {
   return processProps(instance).concat(
     processState(instance),
+    processSetupState(instance),
     processRefs(instance),
     processComputed(instance),
     processInjected(instance),
@@ -60,7 +61,7 @@ function getInstanceState (instance): ComponentState[] {
     processVuexGetters(instance),
     processFirebaseBindings(instance),
     processObservables(instance),
-    processAttrs(instance)
+    processAttrs(instance),
   )
 }
 
@@ -78,9 +79,9 @@ export function getCustomInstanceDetails (instance) {
       tooltip: 'Component instance',
       value: reduceStateList(state),
       fields: {
-        abstract: true
-      }
-    }
+        abstract: true,
+      },
+    },
   }
 }
 
@@ -125,12 +126,12 @@ function processProps (instance): ComponentState[] {
       meta: prop
         ? {
             type: prop.type ? getPropType(prop.type) : 'any',
-            required: !!prop.required
+            required: !!prop.required,
           }
         : {
-            type: 'invalid'
+            type: 'invalid',
           },
-      editable: SharedData.editableProps
+      editable: SharedData.editableProps,
     })
   }
   return propsData
@@ -141,7 +142,7 @@ function processAttrs (instance): ComponentState[] {
     return {
       type: '$attrs',
       key,
-      value
+      value,
     }
   })
 }
@@ -154,6 +155,9 @@ const fnTypeRE = /^(?:function|class) (\w+)/
 function getPropType (type) {
   if (Array.isArray(type)) {
     return type.map(t => getPropType(t)).join(' or ')
+  }
+  if (type == null) {
+    return 'null'
   }
   const match = type.toString().match(fnTypeRE)
   return typeof type === 'function'
@@ -180,8 +184,112 @@ function processState (instance): ComponentState[] {
       key,
       type: 'data',
       value: instance._data[key],
-      editable: true
+      editable: true,
     }))
+}
+
+function processSetupState (instance) {
+  const state = instance._setupProxy || instance
+  const raw = instance._setupState
+  if (!raw) {
+    return []
+  }
+
+  return Object.keys(raw)
+    .filter(key => !key.startsWith('__'))
+    .map(key => {
+      const value = returnError(() => toRaw(state[key]))
+
+      const rawData = raw[key]
+
+      let result: any
+
+      if (rawData) {
+        const info = getSetupStateInfo(rawData)
+
+        const objectType = info.computed ? 'Computed' : info.ref ? 'Ref' : info.reactive ? 'Reactive' : null
+        const isState = info.ref || info.computed || info.reactive
+        const isOther = typeof value === 'function' || typeof value?.render === 'function'
+        // effect is a Vue 2 Watcher instance
+        const raw = rawData.effect?.expression || rawData.effect?.getter?.toString()
+
+        result = {
+          ...objectType ? { objectType } : {},
+          ...raw ? { raw } : {},
+          editable: isState && !info.readonly,
+          type: isOther ? 'setup (other)' : 'setup',
+        }
+      } else {
+        result = {
+          type: 'setup',
+        }
+      }
+
+      return {
+        key,
+        value,
+        ...result,
+      }
+    })
+}
+
+function returnError (cb: () => any) {
+  try {
+    return cb()
+  } catch (e) {
+    return e
+  }
+}
+
+function isRef (raw: any): boolean {
+  return !!raw.__v_isRef
+}
+
+function isComputed (raw: any): boolean {
+  return isRef(raw) && !!raw.effect
+}
+
+function isReactive (raw: any): boolean {
+  return !!raw.__ob__
+}
+
+function isReadOnly (raw: any): boolean {
+  return !!raw.__v_isReadonly
+}
+
+function toRaw (value: any) {
+  if (value?.__v_raw) {
+    return value.__v_raw
+  }
+  return value
+}
+
+function getSetupStateInfo (raw: any) {
+  return {
+    ref: isRef(raw),
+    computed: isComputed(raw),
+    reactive: isReactive(raw),
+    readonly: isReadOnly(raw),
+  }
+}
+
+export function getCustomObjectDetails (object: any, proto: string): CustomState | undefined {
+  const info = getSetupStateInfo(object)
+
+  const isState = info.ref || info.computed || info.reactive
+  if (isState) {
+    const objectType = info.computed ? 'Computed' : info.ref ? 'Ref' : info.reactive ? 'Reactive' : null
+    const value = toRaw(info.reactive ? object : object._value)
+    const raw = object.effect?.raw?.toString() || object.effect?.fn?.toString()
+    return {
+      _custom: {
+        type: objectType.toLowerCase(),
+        objectType,
+        value,
+        ...raw ? { tooltip: `<span class="font-mono">${raw}</span>` } : {},
+      },
+    }
+  }
 }
 
 /**
@@ -215,13 +323,13 @@ function processComputed (instance): ComponentState[] {
       computedProp = {
         type,
         key,
-        value: instance[key]
+        value: instance[key],
       }
     } catch (e) {
       computedProp = {
         type,
         key,
-        value: e
+        value: e,
       }
     }
 
@@ -242,7 +350,7 @@ function processInjected (instance): ComponentState[] {
       return {
         key,
         type: 'injected',
-        value: instance[key]
+        value: instance[key],
       }
     })
   } else {
@@ -270,9 +378,9 @@ function processRouteContext (instance): ComponentState[] {
           _custom: {
             type: 'router',
             abstract: true,
-            value
-          }
-        }
+            value,
+          },
+        },
       }]
     }
   } catch (e) {
@@ -293,7 +401,7 @@ function processVuexGetters (instance): ComponentState[] {
       return {
         type: 'vuex getters',
         key,
-        value: instance[key]
+        value: instance[key],
       }
     })
   } else {
@@ -311,7 +419,7 @@ function processFirebaseBindings (instance): ComponentState[] {
       return {
         type: 'firebase bindings',
         key,
-        value: instance[key]
+        value: instance[key],
       }
     })
   } else {
@@ -329,7 +437,7 @@ function processObservables (instance): ComponentState[] {
       return {
         type: 'observables',
         key,
-        value: instance[key]
+        value: instance[key],
       }
     })
   } else {
@@ -346,13 +454,43 @@ export function findInstanceOrVnode (id) {
   return instanceMap.get(id)
 }
 
-export function editState ({ componentInstance, path, state, type }: HookPayloads[Hooks.EDIT_COMPONENT_STATE]) {
+export function editState (
+  {
+    componentInstance,
+    path,
+    state,
+    type,
+  }: HookPayloads[Hooks.EDIT_COMPONENT_STATE],
+  stateEditor: StateEditor,
+) {
   if (!['data', 'props', 'computed', 'setup'].includes(type)) return
-  const data = has(componentInstance._props, path, !!state.newKey)
-    ? componentInstance._props
-    : componentInstance._data
-  set(data, path, state.value, (obj, field, value) => {
-    if (state.remove || state.newKey) componentInstance.$delete(obj, field)
-    if (!state.remove) componentInstance.$set(obj, state.newKey || field, value)
-  })
+
+  let target: any
+  const targetPath: string[] = path.slice()
+
+  if (stateEditor.has(componentInstance._props, path, !!state.newKey)) {
+    // props
+    target = componentInstance._props
+  } else if (
+    componentInstance._setupState &&
+    Object.keys(componentInstance._setupState).includes(path[0])
+  ) {
+    // setup
+    target = componentInstance._setupProxy
+
+    const currentValue = stateEditor.get(target, path)
+    if (currentValue != null) {
+      const info = getSetupStateInfo(currentValue)
+      if (info.readonly) return
+    }
+  } else {
+    target = componentInstance._data
+  }
+
+  stateEditor.set(
+    target,
+    targetPath,
+    'value' in state ? state.value : undefined,
+    stateEditor.createDefaultSetCallback(state),
+  )
 }

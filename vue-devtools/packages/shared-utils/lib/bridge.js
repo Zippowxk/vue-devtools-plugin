@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Bridge = void 0;
 const events_1 = require("events");
+const raf_1 = require("./raf");
 const BATCH_DURATION = 100;
 class Bridge extends events_1.EventEmitter {
     constructor(wall) {
@@ -20,36 +21,26 @@ class Bridge extends events_1.EventEmitter {
         this._sendingQueue = [];
         this._receivingQueue = [];
         this._sending = false;
-        this._time = null;
+    }
+    on(event, listener) {
+        const wrappedListener = async (...args) => {
+            try {
+                await listener(...args);
+            }
+            catch (e) {
+                console.error(`[Bridge] Error in listener for event ${event.toString()} with args:`, args);
+                console.error(e);
+            }
+        };
+        return super.on(event, wrappedListener);
     }
     send(event, payload) {
-        if (Array.isArray(payload)) {
-            const lastIndex = payload.length - 1;
-            payload.forEach((chunk, index) => {
-                this._send({
-                    event,
-                    _chunk: chunk,
-                    last: index === lastIndex
-                });
-            });
-            this._flush();
-        }
-        else if (this._time === null) {
-            this._send([{ event, payload }]);
-            this._time = Date.now();
-        }
-        else {
-            this._batchingQueue.push({
-                event,
-                payload
-            });
-            const now = Date.now();
-            if (now - this._time > BATCH_DURATION) {
-                this._flush();
-            }
-            else {
-                this._timer = setTimeout(() => this._flush(), BATCH_DURATION);
-            }
+        this._batchingQueue.push({
+            event,
+            payload,
+        });
+        if (this._timer == null) {
+            this._timer = setTimeout(() => this._flush(), BATCH_DURATION);
         }
     }
     /**
@@ -62,8 +53,8 @@ class Bridge extends events_1.EventEmitter {
         if (this._batchingQueue.length)
             this._send(this._batchingQueue);
         clearTimeout(this._timer);
+        this._timer = null;
         this._batchingQueue = [];
-        this._time = null;
     }
     // @TODO types
     _emit(message) {
@@ -100,7 +91,7 @@ class Bridge extends events_1.EventEmitter {
             }
         }
         this._sending = false;
-        requestAnimationFrame(() => this._nextSend());
+        (0, raf_1.raf)(() => this._nextSend());
     }
 }
 exports.Bridge = Bridge;

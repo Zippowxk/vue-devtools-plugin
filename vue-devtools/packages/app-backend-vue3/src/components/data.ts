@@ -1,9 +1,62 @@
 import { BackendContext } from '@vue-devtools/app-backend-api'
 import { getInstanceName, getUniqueComponentId } from './util'
-import { camelize, get, set } from '@vue-devtools/shared-utils'
-import SharedData from '@vue-devtools/shared-utils/lib/shared-data'
-import { ComponentInstance, HookPayloads, Hooks, InspectedComponentData } from '@vue/devtools-api'
+import { camelize, StateEditor, SharedData } from '@vue-devtools/shared-utils'
+import { ComponentInstance, CustomState, HookPayloads, Hooks, InspectedComponentData } from '@vue/devtools-api'
 import { returnError } from '../util'
+
+const vueBuiltins = [
+  'nextTick',
+  'defineComponent',
+  'defineAsyncComponent',
+  'defineCustomElement',
+  'ref',
+  'computed',
+  'reactive',
+  'readonly',
+  'watchEffect',
+  'watchPostEffect',
+  'watchSyncEffect',
+  'watch',
+  'isRef',
+  'unref',
+  'toRef',
+  'toRefs',
+  'isProxy',
+  'isReactive',
+  'isReadonly',
+  'shallowRef',
+  'triggerRef',
+  'customRef',
+  'shallowReactive',
+  'shallowReadonly',
+  'toRaw',
+  'markRaw',
+  'effectScope',
+  'getCurrentScope',
+  'onScopeDispose',
+  'onMounted',
+  'onUpdated',
+  'onUnmounted',
+  'onBeforeMount',
+  'onBeforeUpdate',
+  'onBeforeUnmount',
+  'onErrorCaptured',
+  'onRenderTracked',
+  'onRenderTriggered',
+  'onActivated',
+  'onDeactivated',
+  'onServerPrefetch',
+  'provide',
+  'inject',
+  'h',
+  'mergeProps',
+  'cloneVNode',
+  'isVNode',
+  'resolveComponent',
+  'resolveDirective',
+  'withDirectives',
+  'withModifiers',
+]
 
 /**
  * Get the detailed information of an inspected instance.
@@ -13,7 +66,7 @@ export function getInstanceDetails (instance: any, ctx: BackendContext): Inspect
     id: getUniqueComponentId(instance, ctx),
     name: getInstanceName(instance),
     file: instance.type?.__file,
-    state: getInstanceState(instance)
+    state: getInstanceState(instance),
   }
 }
 
@@ -26,7 +79,8 @@ function getInstanceState (instance) {
     processAttrs(instance),
     processProvide(instance),
     processInject(instance, mergedType),
-    processRefs(instance)
+    processRefs(instance),
+    processEventListeners(instance),
   )
 }
 
@@ -55,14 +109,14 @@ function processProps (instance) {
             required: !!propDefinition.required,
             ...propDefinition.default != null
               ? {
-                  default: propDefinition.default.toString()
+                  default: propDefinition.default.toString(),
                 }
-              : {}
+              : {},
           }
         : {
-            type: 'invalid'
+            type: 'invalid',
           },
-      editable: SharedData.editableProps
+      editable: SharedData.editableProps,
     })
   }
   return propsData
@@ -75,6 +129,9 @@ const fnTypeRE = /^(?:function|class) (\w+)/
 function getPropType (type) {
   if (Array.isArray(type)) {
     return type.map(t => getPropType(t)).join(' or ')
+  }
+  if (type == null) {
+    return 'null'
   }
   const match = type.toString().match(fnTypeRE)
   return typeof type === 'function'
@@ -101,7 +158,7 @@ function processState (instance) {
 
   const data = {
     ...instance.data,
-    ...instance.renderContext
+    ...instance.renderContext,
   }
 
   return Object.keys(data)
@@ -114,43 +171,50 @@ function processState (instance) {
       key,
       type: 'data',
       value: returnError(() => data[key]),
-      editable: true
+      editable: true,
     }))
 }
 
 function processSetupState (instance) {
   const raw = instance.devtoolsRawSetupState || {}
   return Object.keys(instance.setupState)
+    .filter(key => !vueBuiltins.includes(key) && key.split(/(?=[A-Z])/)[0] !== 'use')
     .map(key => {
-      const value = returnError(() => instance.setupState[key])
+      const value = returnError(() => toRaw(instance.setupState[key]))
 
       const rawData = raw[key]
 
       let result: any
+
+      let isOther = typeof value === 'function' ||
+        typeof value?.render === 'function' ||
+        typeof value?.__asyncLoader === 'function'
 
       if (rawData) {
         const info = getSetupStateInfo(rawData)
 
         const objectType = info.computed ? 'Computed' : info.ref ? 'Ref' : info.reactive ? 'Reactive' : null
         const isState = info.ref || info.computed || info.reactive
-        const isOther = typeof value === 'function' || typeof value?.render === 'function'
+        const raw = rawData.effect?.raw?.toString() || rawData.effect?.fn?.toString()
+
+        if (objectType) {
+          isOther = false
+        }
 
         result = {
           ...objectType ? { objectType } : {},
-          ...raw.effect ? { raw: raw.effect.raw.toString() } : {},
+          ...raw ? { raw } : {},
           editable: isState && !info.readonly,
-          type: isOther ? 'setup (other)' : 'setup'
-        }
-      } else {
-        result = {
-          type: 'setup'
         }
       }
+
+      const type = isOther ? 'setup (other)' : 'setup'
 
       return {
         key,
         value,
-        ...result
+        type,
+        ...result,
       }
     })
 }
@@ -171,12 +235,47 @@ function isReadOnly (raw: any): boolean {
   return !!raw.__v_isReadonly
 }
 
+function toRaw (value: any) {
+  if (value?.__v_raw) {
+    return value.__v_raw
+  }
+  return value
+}
+
 function getSetupStateInfo (raw: any) {
   return {
     ref: isRef(raw),
     computed: isComputed(raw),
     reactive: isReactive(raw),
-    readonly: isReadOnly(raw)
+    readonly: isReadOnly(raw),
+  }
+}
+
+export function getCustomObjectDetails (object: any, proto: string): CustomState | undefined {
+  const info = getSetupStateInfo(object)
+
+  const isState = info.ref || info.computed || info.reactive
+  if (isState) {
+    const objectType = info.computed ? 'Computed' : info.ref ? 'Ref' : info.reactive ? 'Reactive' : null
+    const value = toRaw(info.reactive ? object : object._value)
+    const raw = object.effect?.raw?.toString() || object.effect?.fn?.toString()
+    return {
+      _custom: {
+        type: objectType.toLowerCase(),
+        objectType,
+        value,
+        ...raw ? { tooltip: `<span class="font-mono">${raw}</span>` } : {},
+      },
+    }
+  }
+
+  if (typeof object.__asyncLoader === 'function') {
+    return {
+      _custom: {
+        type: 'component-definition',
+        display: 'Async component definition',
+      },
+    }
   }
 }
 
@@ -203,7 +302,7 @@ function processComputed (instance, mergedType) {
       type,
       key,
       value: returnError(() => instance.proxy[key]),
-      editable: typeof def.set === 'function'
+      editable: typeof def.set === 'function',
     })
   }
 
@@ -215,46 +314,48 @@ function processAttrs (instance) {
     .map(key => ({
       type: 'attrs',
       key,
-      value: returnError(() => instance.attrs[key])
+      value: returnError(() => instance.attrs[key]),
     }))
 }
 
 function processProvide (instance) {
-  return Object.keys(instance.provides)
+  return Reflect.ownKeys(instance.provides)
     .map(key => ({
       type: 'provided',
-      key,
-      value: returnError(() => instance.provides[key])
+      key: key.toString(),
+      value: returnError(() => instance.provides[key]),
     }))
 }
 
 function processInject (instance, mergedType) {
   if (!mergedType?.inject) return []
   let keys = []
+  let defaultValue
   if (Array.isArray(mergedType.inject)) {
     keys = mergedType.inject.map(key => ({
       key,
-      originalKey: key
+      originalKey: key,
     }))
   } else {
-    keys = Object.keys(mergedType.inject).map(key => {
+    keys = Reflect.ownKeys(mergedType.inject).map(key => {
       const value = mergedType.inject[key]
       let originalKey
-      if (typeof value === 'string') {
+      if (typeof value === 'string' || typeof value === 'symbol') {
         originalKey = value
       } else {
         originalKey = value.from
+        defaultValue = value.default
       }
       return {
         key,
-        originalKey
+        originalKey,
       }
     })
   }
   return keys.map(({ key, originalKey }) => ({
     type: 'injected',
-    key: originalKey && key !== originalKey ? `${originalKey} ➞ ${key}` : key,
-    value: returnError(() => instance.ctx[key])
+    key: originalKey && key !== originalKey ? `${originalKey.toString()} ➞ ${key.toString()}` : key.toString(),
+    value: returnError(() => instance.ctx.hasOwnProperty(key) ? instance.ctx[key] : instance.provides.hasOwnProperty(originalKey) ? instance.provides[originalKey] : defaultValue),
   }))
 }
 
@@ -263,11 +364,36 @@ function processRefs (instance) {
     .map(key => ({
       type: 'refs',
       key,
-      value: returnError(() => instance.refs[key])
+      value: returnError(() => instance.refs[key]),
     }))
 }
 
-export function editState ({ componentInstance, path, state, type }: HookPayloads[Hooks.EDIT_COMPONENT_STATE], ctx: BackendContext) {
+function processEventListeners (instance) {
+  const emitsDefinition = instance.type.emits
+  const declaredEmits = Array.isArray(emitsDefinition) ? emitsDefinition : Object.keys(emitsDefinition ?? {})
+  const keys = Object.keys(instance.vnode.props ?? {})
+  const result = []
+  for (const key of keys) {
+    const [prefix, ...eventNameParts] = key.split(/(?=[A-Z])/)
+    if (prefix === 'on') {
+      const eventName = eventNameParts.join('-').toLowerCase()
+      const isDeclared = declaredEmits.includes(eventName)
+      result.push({
+        type: 'event listeners',
+        key: eventName,
+        value: {
+          _custom: {
+            display: isDeclared ? '✅ Declared' : '⚠️ Not declared',
+            tooltip: !isDeclared ? `The event <code>${eventName}</code> is not declared in the <code>emits</code> option. It will leak into the component's attributes (<code>$attrs</code>).` : null,
+          },
+        },
+      })
+    }
+  }
+  return result
+}
+
+export function editState ({ componentInstance, path, state, type }: HookPayloads[Hooks.EDIT_COMPONENT_STATE], stateEditor: StateEditor, ctx: BackendContext) {
   if (!['data', 'props', 'computed', 'setup'].includes(type)) return
   let target: any
   const targetPath: string[] = path.slice()
@@ -279,32 +405,17 @@ export function editState ({ componentInstance, path, state, type }: HookPayload
     // Setup
     target = componentInstance.devtoolsRawSetupState
 
-    const currentValue = get(componentInstance.devtoolsRawSetupState, path)
+    const currentValue = stateEditor.get(componentInstance.devtoolsRawSetupState, path)
     if (currentValue != null) {
       const info = getSetupStateInfo(currentValue)
-
       if (info.readonly) return
-      if (info.ref) {
-        targetPath.splice(1, 0, 'value')
-      }
     }
   } else {
     target = componentInstance.proxy
   }
 
   if (target && targetPath) {
-    set(target, targetPath, 'value' in state ? state.value : undefined, (obj, field, value) => {
-      if (state.remove || state.newKey) {
-        if (Array.isArray(obj)) {
-          obj.splice(field, 1)
-        } else {
-          delete obj[field]
-        }
-      }
-      if (!state.remove) {
-        obj[state.newKey || field] = value
-      }
-    })
+    stateEditor.set(target, targetPath, 'value' in state ? state.value : undefined, stateEditor.createDefaultSetCallback(state))
   }
 }
 
@@ -331,14 +442,14 @@ export function getCustomInstanceDetails (instance) {
       tooltip: 'Component instance',
       value: reduceStateList(state),
       fields: {
-        abstract: true
-      }
-    }
+        abstract: true,
+      },
+    },
   }
 }
 
 function resolveMergedOptions (
-  instance: ComponentInstance
+  instance: ComponentInstance,
 ) {
   const raw = instance.type
   const { mixins, extends: extendsOptions } = raw
@@ -353,20 +464,20 @@ function resolveMergedOptions (
 function mergeOptions (
   to: any,
   from: any,
-  instance: ComponentInstance
+  instance: ComponentInstance,
 ) {
-  if (!from) return to
-
   if (typeof from === 'function') {
     from = from.options
   }
+
+  if (!from) return to
 
   const { mixins, extends: extendsOptions } = from
 
   extendsOptions && mergeOptions(to, extendsOptions, instance)
   mixins &&
     mixins.forEach((m) =>
-      mergeOptions(to, m, instance)
+      mergeOptions(to, m, instance),
     )
 
   for (const key of ['computed', 'inject']) {

@@ -1,4 +1,4 @@
-import { ref, computed } from '@vue/composition-api'
+import { ref, computed } from 'vue'
 import { useRoute } from '@front/util/router'
 import { useApps } from '@front/features/apps'
 import { BridgeEvents, parse, searchDeepInObject, getStorage, setStorage, Bridge } from '@vue-devtools/shared-utils'
@@ -6,7 +6,7 @@ import { getBridge, useBridge } from '@front/features/bridge'
 
 export interface InspectorFromBackend {
   id: string
-  appId: number
+  appId: string
   pluginId: string
   label: string
   icon: string
@@ -14,6 +14,10 @@ export interface InspectorFromBackend {
   stateFilterPlaceholder: string
   noSelectionText: string
   actions?: {
+    icon: string
+    tooltip?: string
+  }[]
+  nodeActions?: {
     icon: string
     tooltip?: string
   }[]
@@ -41,7 +45,7 @@ function inspectorFactory (options: InspectorFromBackend): Inspector {
     selectedNode: null,
     stateFilter: '',
     state: null,
-    expandedMap: {}
+    expandedMap: {},
   }
 }
 
@@ -52,7 +56,7 @@ export function useInspectors () {
   const currentAppInspectors = computed(() => inspectors.value.filter(i => i.appId === currentAppId.value))
 
   return {
-    inspectors: currentAppInspectors
+    inspectors: currentAppInspectors,
   }
 }
 
@@ -69,7 +73,7 @@ export function useCurrentInspector () {
       for (const groupKey in currentInspector.value.state) {
         const group = currentInspector.value.state[groupKey]
         const groupFields = group.filter(el => searchDeepInObject({
-          [el.key]: el.value
+          [el.key]: el.value,
         }, currentInspector.value.stateFilter))
         if (groupFields.length) {
           result[groupKey] = groupFields
@@ -109,7 +113,7 @@ export function useCurrentInspector () {
       nodeId: currentInspector.value.selectedNodeId,
       path,
       type,
-      payload
+      payload,
     })
   }
 
@@ -120,7 +124,7 @@ export function useCurrentInspector () {
     refreshInspector,
     refreshTree,
     refreshState,
-    editState
+    editState,
   }
 }
 
@@ -133,7 +137,7 @@ function fetchTree (inspector: Inspector) {
   getBridge().send(BridgeEvents.TO_BACK_CUSTOM_INSPECTOR_TREE, {
     inspectorId: inspector.id,
     appId: inspector.appId,
-    treeFilter: inspector.treeFilter
+    treeFilter: inspector.treeFilter,
   })
 }
 
@@ -142,7 +146,7 @@ function fetchState (inspector: Inspector) {
   getBridge().send(BridgeEvents.TO_BACK_CUSTOM_INSPECTOR_STATE, {
     inspectorId: inspector.id,
     appId: inspector.appId,
-    nodeId: inspector.selectedNodeId
+    nodeId: inspector.selectedNodeId,
   })
 }
 
@@ -170,7 +174,7 @@ export function setupCustomInspectorBridgeEvents (bridge: Bridge) {
     const inspector = inspectors.value.find(i => i.id === inspectorId && i.appId === appId)
 
     if (!inspector) {
-      console.error(`Inspector ${inspectorId} not found`)
+      console.warn(`Inspector ${inspectorId} not found`)
       return
     }
 
@@ -181,7 +185,7 @@ export function setupCustomInspectorBridgeEvents (bridge: Bridge) {
     const inspector = inspectors.value.find(i => i.id === inspectorId && i.appId === appId)
 
     if (!inspector) {
-      console.error(`Inspector ${inspectorId} not found`)
+      console.warn(`Inspector ${inspectorId} not found`)
       return
     }
 
@@ -192,7 +196,7 @@ export function setupCustomInspectorBridgeEvents (bridge: Bridge) {
     const inspector = inspectors.value.find(i => i.id === inspectorId && i.appId === appId)
 
     if (!inspector) {
-      console.error(`Inspector ${inspectorId} not found`)
+      console.warn(`Inspector ${inspectorId} not found`)
       return
     }
 

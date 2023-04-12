@@ -1,4 +1,4 @@
-import { onUnmounted } from '@vue/composition-api'
+import { onUnmounted } from 'vue'
 import { BridgeEvents, getStorage } from '@vue-devtools/shared-utils'
 import { getBridge } from '@front/features/bridge'
 import {
@@ -16,7 +16,7 @@ import {
   endTime,
   minTime,
   maxTime,
-  selectedLayer
+  selectedLayer,
 } from './store'
 import { fetchLayers } from './layers'
 
@@ -52,11 +52,9 @@ export function resetTimeline (sync = true) {
 }
 
 export function resetTime () {
-  const now = Date.now()
-  startTime.value = now - 1000
-  endTime.value = now
-  minTime.value = now - 1000
-  maxTime.value = now
+  const now = 0
+  minTime.value = startTime.value = now - 1_000_000
+  maxTime.value = endTime.value = now
 }
 
 export function onTimelineReset (cb: ResetCb) {

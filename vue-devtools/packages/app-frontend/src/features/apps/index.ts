@@ -1,69 +1,62 @@
-import { ref, computed, watch } from '@vue/composition-api'
+import { ref, computed } from 'vue'
 import { BridgeEvents, Bridge } from '@vue-devtools/shared-utils'
-import { useBridge, getBridge } from '@front/features/bridge'
+import { getBridge } from '@front/features/bridge'
 import { useRoute, useRouter } from '@front/util/router'
 import { fetchLayers } from '../timeline/composable'
 
-export interface App {
-  id: number
+export interface AppRecord {
+  id: string
   name: string
   version: string
   iframe: string
 }
 
-const apps = ref<App[]>([])
+const apps = ref<AppRecord[]>([])
 
 export function useCurrentApp () {
   const route = useRoute()
-  const currentAppId = computed(() => parseInt(route.value.params.appId))
+  const currentAppId = computed(() => route.value.params.appId)
   const currentApp = computed(() => apps.value.find(a => currentAppId.value === a.id))
 
   return {
     currentAppId,
-    currentApp
+    currentApp,
   }
 }
 
 export function useApps () {
-  const { bridge } = useBridge()
   const router = useRouter()
 
   const {
     currentAppId,
-    currentApp
+    currentApp,
   } = useCurrentApp()
 
-  function selectApp (id: number) {
+  function selectApp (id: string) {
     if (currentAppId.value !== id) {
       router.push({
         params: {
           appId: id.toString(),
-          componentId: null
-        }
+          componentId: null,
+        },
       })
     }
   }
-
-  watch(currentAppId, value => {
-    bridge.send(BridgeEvents.TO_BACK_APP_SELECT, value)
-  }, {
-    immediate: true
-  })
 
   return {
     apps,
     currentAppId,
     currentApp,
-    selectApp
+    selectApp,
   }
 }
 
-function addApp (app: App) {
+function addApp (app: AppRecord) {
   removeApp(app.id)
   apps.value.push(app)
 }
 
-function removeApp (appId: number) {
+function removeApp (appId: string) {
   const index = apps.value.findIndex(app => app.id === appId)
   if (index !== -1) {
     apps.value.splice(index, 1)
@@ -78,6 +71,24 @@ function fetchApps () {
   getBridge().send(BridgeEvents.TO_BACK_APP_LIST, {})
 }
 
+export const pendingSelectAppId = ref<string>(null)
+
+const pendingSelectPromises: (() => void)[] = []
+
+export function waitForAppSelect (): Promise<void> {
+  if (!pendingSelectAppId.value) {
+    return Promise.resolve()
+  } else {
+    return new Promise(resolve => {
+      pendingSelectPromises.push(resolve)
+    })
+  }
+}
+
+export function scanLegacyApps () {
+  getBridge().send(BridgeEvents.TO_BACK_SCAN_LEGACY_APPS, {})
+}
+
 export function setupAppsBridgeEvents (bridge: Bridge) {
   bridge.on(BridgeEvents.TO_FRONT_APP_ADD, ({ appRecord }) => {
     addApp(appRecord)
@@ -90,6 +101,15 @@ export function setupAppsBridgeEvents (bridge: Bridge) {
 
   bridge.on(BridgeEvents.TO_FRONT_APP_LIST, ({ apps: list }) => {
     apps.value = list
+  })
+
+  bridge.on(BridgeEvents.TO_FRONT_APP_SELECTED, ({ id }) => {
+    if (pendingSelectAppId.value === id) {
+      pendingSelectAppId.value = null
+      for (const resolve of pendingSelectPromises) {
+        resolve()
+      }
+    }
   })
 
   fetchApps()

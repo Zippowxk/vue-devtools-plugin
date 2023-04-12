@@ -7,9 +7,13 @@ export default {
   props: {
     level: {
       type: Number,
-      default: 0
-    }
-  }
+      default: 0,
+    },
+  },
+
+  emits: [
+    'notify',
+  ],
 }
 </script>
 

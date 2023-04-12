@@ -4,7 +4,8 @@
 import VConsole from "vconsole";
 // import { initPlugin } from './debug/vue_plugin.js'
 import Devtools from './debug/vue_plugin.js'
-import { createApp } from './debug/vue.esm-bundler.js'
+// import { createApp } from './debug/vue.esm-bundler.js'
+import { createApp } from 'vue/dist/vue.esm-bundler.js'
 // import Vue from 'vue/dist/vue.cjs.js'
 // import Vue from 'vue/dist/vue.global.js'
 // const Vue = require('vue/dist/vue.global.js')

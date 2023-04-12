@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.watchSharedData = exports.destroySharedData = exports.onSharedDataInit = exports.initSharedData = void 0;
+exports.SharedData = exports.watchSharedData = exports.destroySharedData = exports.onSharedDataInit = exports.initSharedData = void 0;
 const storage_1 = require("./storage");
 const env_1 = require("./env");
 // Initial state
@@ -14,6 +14,7 @@ const internalSharedData = {
     cacheVuexSnapshotsEvery: 50,
     cacheVuexSnapshotsLimit: 10,
     snapshotLoading: false,
+    componentEventsEnabled: true,
     performanceMonitoringEnabled: true,
     editableProps: false,
     logDetected: true,
@@ -24,7 +25,14 @@ const internalSharedData = {
     timelineTimeGrid: true,
     timelineScreenshots: true,
     menuStepScrolling: env_1.isMac,
-    pluginPermissions: {}
+    pluginPermissions: {},
+    pluginSettings: {},
+    pageConfig: {},
+    legacyApps: false,
+    trackUpdates: true,
+    flashUpdates: false,
+    debugInfo: false,
+    isBrowser: env_1.isBrowser,
 };
 const persisted = [
     'componentNameStyle',
@@ -42,7 +50,12 @@ const persisted = [
     'timelineScreenshots',
     'menuStepScrolling',
     'pluginPermissions',
-    'performanceMonitoringEnabled'
+    'pluginSettings',
+    'performanceMonitoringEnabled',
+    'componentEventsEnabled',
+    'trackUpdates',
+    'flashUpdates',
+    'debugInfo',
 ];
 const storageVersion = '6.0.0-alpha.1';
 // ---- INTERNALS ---- //
@@ -60,11 +73,13 @@ function initSharedData(params) {
         bridge = params.bridge;
         persist = !!params.persist;
         if (persist) {
-            if (process.env.NODE_ENV !== 'production')
+            if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
                 console.log('[shared data] Master init in progress...');
+            }
             // Load persisted fields
             persisted.forEach(key => {
-                const value = storage_1.getStorage(`vue-devtools-${storageVersion}:shared-data:${key}`);
+                const value = (0, storage_1.getStorage)(`vue-devtools-${storageVersion}:shared-data:${key}`);
                 if (value !== null) {
                     internalSharedData[key] = value;
                 }
@@ -77,47 +92,58 @@ function initSharedData(params) {
                 bridge.send('shared-data:load-complete');
             });
             bridge.on('shared-data:init-complete', () => {
-                if (process.env.NODE_ENV !== 'production')
+                if (process.env.NODE_ENV !== 'production') {
+                    // eslint-disable-next-line no-console
                     console.log('[shared data] Master init complete');
+                }
                 clearInterval(initRetryInterval);
                 resolve();
             });
             bridge.send('shared-data:master-init-waiting');
             // In case backend init is executed after frontend
-            bridge.on('shared-data:slave-init-waiting', () => {
+            bridge.on('shared-data:minion-init-waiting', () => {
                 bridge.send('shared-data:master-init-waiting');
             });
             initRetryCount = 0;
+            clearInterval(initRetryInterval);
             initRetryInterval = setInterval(() => {
-                if (process.env.NODE_ENV !== 'production')
-                    console.log('[shared data] Master init retrying...:',initRetryCount);
+                if (process.env.NODE_ENV !== 'production') {
+                    // eslint-disable-next-line no-console
+                    console.log('[shared data] Master init retrying...');
+                }
                 bridge.send('shared-data:master-init-waiting');
                 initRetryCount++;
-                if (initRetryCount > 30) {
+                if (initRetryCount > 1) {
                     clearInterval(initRetryInterval);
                     console.error('[shared data] Master init failed');
                 }
-            }, 1000);
+            }, 2000);
         }
         else {
-            if (process.env.NODE_ENV !== 'production')
-                console.log('[shared data] Slave init in progress...');
+            if (process.env.NODE_ENV !== 'production') {
+                // eslint-disable-next-line no-console
+                console.log('[shared data] Minion init in progress...');
+            }
             bridge.on('shared-data:master-init-waiting', () => {
-                if (process.env.NODE_ENV !== 'production')
-                    console.log('[shared data] Slave loading data...');
+                if (process.env.NODE_ENV !== 'production') {
+                    // eslint-disable-next-line no-console
+                    console.log('[shared data] Minion loading data...');
+                }
                 // Load all persisted shared data
                 bridge.send('shared-data:load');
                 bridge.once('shared-data:load-complete', () => {
-                    if (process.env.NODE_ENV !== 'production')
-                        console.log('[shared data] Slave init complete');
+                    if (process.env.NODE_ENV !== 'production') {
+                        // eslint-disable-next-line no-console
+                        console.log('[shared data] Minion init complete');
+                    }
                     bridge.send('shared-data:init-complete');
                     resolve();
                 });
             });
-            bridge.send('shared-data:slave-init-waiting');
+            bridge.send('shared-data:minion-init-waiting');
         }
         data = {
-            ...internalSharedData
+            ...internalSharedData,
         };
         if (params.Vue) {
             data = params.Vue.observable(data);
@@ -148,7 +174,7 @@ let watchers = {};
 function setValue(key, value) {
     // Storage
     if (persist && persisted.includes(key)) {
-        storage_1.setStorage(`vue-devtools-${storageVersion}:shared-data:${key}`, value);
+        (0, storage_1.setStorage)(`vue-devtools-${storageVersion}:shared-data:${key}`, value);
     }
     const oldValue = data[key];
     data[key] = value;
@@ -162,7 +188,7 @@ function setValue(key, value) {
 function sendValue(key, value) {
     bridge && bridge.send('shared-data:set', {
         key,
-        value
+        value,
     });
 }
 function watchSharedData(prop, handler) {
@@ -183,8 +209,8 @@ Object.keys(internalSharedData).forEach(key => {
         set: (value) => {
             sendValue(key, value);
             setValue(key, value);
-        }
+        },
     });
 });
-exports.default = proxy;
+exports.SharedData = proxy;
 //# sourceMappingURL=shared-data.js.map

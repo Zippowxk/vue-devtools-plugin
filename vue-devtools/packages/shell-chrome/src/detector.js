@@ -1,5 +1,5 @@
 import { installToast } from '@back/toast'
-import { isFirefox } from '@utils/env'
+import { isFirefox } from '@vue-devtools/shared-utils'
 
 window.addEventListener('message', e => {
   if (e.source === window && e.data.vueDetected) {
@@ -8,21 +8,25 @@ window.addEventListener('message', e => {
 })
 
 function detect (win) {
-  setTimeout(() => {
-    // Method 1: Check Nuxt.js
+  let delay = 1000
+  let detectRemainingTries = 10
+
+  function runDetect () {
+    // Method 1: Check Nuxt
     const nuxtDetected = !!(window.__NUXT__ || window.$nuxt)
 
     if (nuxtDetected) {
       let Vue
 
       if (window.$nuxt) {
-        Vue = window.$nuxt.$root.constructor
+        Vue = window.$nuxt.$root && window.$nuxt.$root.constructor
       }
 
       win.postMessage({
-        devtoolsEnabled: Vue && Vue.config.devtools,
+        devtoolsEnabled: (/* Vue 2 */ Vue && Vue.config.devtools) ||
+          (/* Vue 3.2.14+ */ window.__VUE_DEVTOOLS_GLOBAL_HOOK__ && window.__VUE_DEVTOOLS_GLOBAL_HOOK__.enabled),
         vueDetected: true,
-        nuxtDetected: true
+        nuxtDetected: true,
       }, '*')
 
       return
@@ -32,9 +36,8 @@ function detect (win) {
     const vueDetected = !!(window.__VUE__)
     if (vueDetected) {
       win.postMessage({
-        // TODO disable devtools
-        devtoolsEnabled: true,
-        vueDetected: true
+        devtoolsEnabled: /* Vue 3.2.14+ */ window.__VUE_DEVTOOLS_GLOBAL_HOOK__ && window.__VUE_DEVTOOLS_GLOBAL_HOOK__.enabled,
+        vueDetected: true,
       }, '*')
 
       return
@@ -56,9 +59,22 @@ function detect (win) {
       }
       win.postMessage({
         devtoolsEnabled: Vue.config.devtools,
-        vueDetected: true
+        vueDetected: true,
       }, '*')
+      return
     }
+
+    if (detectRemainingTries > 0) {
+      detectRemainingTries--
+      setTimeout(() => {
+        runDetect()
+      }, delay)
+      delay *= 5
+    }
+  }
+
+  setTimeout(() => {
+    runDetect()
   }, 100)
 }
 

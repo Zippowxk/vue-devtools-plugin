@@ -8,10 +8,11 @@ import TimelineEventList from './TimelineEventList.vue'
 import TimelineEventInspector from './TimelineEventInspector.vue'
 import AskScreenshotPermission from './AskScreenshotPermission.vue'
 
-import { computed, onMounted, ref, watch, defineComponent, onUnmounted } from '@vue/composition-api'
+import { computed, onMounted, ref, watch, defineComponent, onUnmounted } from 'vue'
+import { getStorage, SharedData } from '@vue-devtools/shared-utils'
 import { onSharedDataChange } from '@front/util/shared-data'
 import { formatTime } from '@front/util/format'
-import SharedData from '@utils/shared-data'
+import { useFonts } from '@front/util/fonts'
 import {
   useTime,
   useLayers,
@@ -19,7 +20,7 @@ import {
   useCursor,
   useSelectedEvent,
   useScreenshots,
-  supportsScreenshot
+  supportsScreenshot,
 } from './composable'
 
 export default defineComponent({
@@ -31,7 +32,7 @@ export default defineComponent({
     TimelineEventList,
     TimelineEventInspector,
     AskScreenshotPermission,
-    PluginSourceIcon
+    PluginSourceIcon,
   },
 
   setup () {
@@ -43,7 +44,7 @@ export default defineComponent({
       setLayerHidden,
       hoverLayerId,
       selectedLayer,
-      selectLayer
+      selectLayer,
     } = useLayers()
     const layersEl = ref()
 
@@ -56,7 +57,7 @@ export default defineComponent({
     watch(vScroll, () => {
       applyScroll()
     }, {
-      immediate: true
+      immediate: true,
     })
 
     onMounted(() => {
@@ -76,19 +77,31 @@ export default defineComponent({
       startTime,
       endTime,
       minTime,
-      maxTime
+      maxTime,
     } = useTime()
 
     const {
-      selectedEvent
+      selectedEvent,
     } = useSelectedEvent()
 
-    // Scroll to selected event
+    // Auto scroll to selected event
     watch(selectedEvent, event => {
       if (!event) return
 
       const size = endTime.value - startTime.value
-      if (event.time < startTime.value || event.time > endTime.value) {
+
+      let isEventInViewPort: boolean
+      if (event.layer.groupsOnly) {
+        isEventInViewPort = (
+          (event.group.firstEvent.time >= startTime.value && event.group.firstEvent.time <= endTime.value) ||
+          (event.group.lastEvent.time >= startTime.value && event.group.lastEvent.time <= endTime.value) ||
+          (event.group.firstEvent.time <= startTime.value && event.group.lastEvent.time >= endTime.value)
+        )
+      } else {
+        isEventInViewPort = event.time >= startTime.value && event.time <= endTime.value
+      }
+
+      if (!isEventInViewPort) {
         startTime.value = event.time - size / 2
         if (startTime.value < minTime.value) {
           startTime.value = minTime.value
@@ -105,7 +118,7 @@ export default defineComponent({
 
     const { cursorTime } = useCursor()
 
-    const formattedCursorTime = computed(() => cursorTime.value ? formatTime(cursorTime.value, 'ms') : null)
+    const formattedCursorTime = computed(() => cursorTime.value ? formatTime(cursorTime.value / 1000, 'ms') : null)
 
     // Screenshots
 
@@ -122,8 +135,8 @@ export default defineComponent({
           origins: [
             'http://*/*',
             'https://*/*',
-            'file:///*'
-          ]
+            'file:///*',
+          ],
         }, granted => {
           if (!granted) {
             /* Ask modal disabled for now */
@@ -136,7 +149,7 @@ export default defineComponent({
 
     const {
       screenshots,
-      showScreenshot
+      showScreenshot,
     } = useScreenshots()
 
     watch(cursorTime, value => {
@@ -266,11 +279,31 @@ export default defineComponent({
       stopMove()
     })
 
+    // Fonts
+
+    const { loaded: fontsLoaded } = useFonts()
+
+    // Restore layer selection
+
+    watch(layers, value => {
+      if (!selectedLayer.value && value.length) {
+        const layerId = getStorage('selected-layer-id')
+        if (layerId) {
+          const layer = value.find(layer => layer.id === layerId)
+          if (layer) {
+            selectLayer(layer)
+          }
+        }
+      }
+    })
+
     return {
+      fontsLoaded,
       startTime,
       endTime,
       minTime,
       maxTime,
+      cursorTime,
       layers,
       vScroll,
       layersEl,
@@ -288,9 +321,9 @@ export default defineComponent({
       zoomIn,
       zoomOut,
       moveLeft,
-      moveRight
+      moveRight,
     }
-  }
+  },
 })
 </script>
 
@@ -322,6 +355,7 @@ export default defineComponent({
               @mouseenter.native="hoverLayerId = layer.id"
               @mouseleave.native="hoverLayerId = null"
               @select="selectLayer(layer)"
+              @hide="setLayerHidden(layer, true)"
             />
           </div>
         </div>
@@ -333,9 +367,11 @@ export default defineComponent({
           :default-split="50"
           :max="85"
           dragger-offset="after"
+          collapsable-left
+          collapsable-right
         >
           <template #left>
-            <div class="h-full flex flex-col">
+            <div class="h-full flex flex-col select-none">
               <div class="flex items-center flex-none border-b border-gray-200 dark:border-gray-800">
                 <VueButton
                   icon-left="arrow_left"
@@ -372,6 +408,7 @@ export default defineComponent({
                 />
               </div>
               <TimelineView
+                v-if="fontsLoaded"
                 class="h-full"
               />
 
@@ -386,6 +423,12 @@ export default defineComponent({
                   />
                   <span>
                     {{ formattedCursorTime }}
+                    <span
+                      v-if="$shared.debugInfo"
+                      class="opacity-50"
+                    >
+                      ({{ Math.floor(startTime) }}<span class="opacity-50">|</span>{{ Math.floor(cursorTime) }}<span class="opacity-50">|</span>{{ Math.floor(endTime) }})
+                    </span>
                   </span>
                 </div>
               </div>
@@ -414,7 +457,7 @@ export default defineComponent({
           <VueButton
             v-tooltip="'Select layers'"
             class="icon-button flat"
-            icon-left="playlist_add"
+            icon-left="layers"
           />
         </template>
 

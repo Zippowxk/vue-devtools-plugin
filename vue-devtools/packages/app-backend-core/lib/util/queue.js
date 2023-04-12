@@ -5,22 +5,32 @@ class JobQueue {
     constructor() {
         this.jobs = [];
     }
-    queue(job) {
+    queue(id, fn) {
+        const job = {
+            id,
+            fn,
+        };
         return new Promise(resolve => {
             const onDone = () => {
                 this.currentJob = null;
                 const nextJob = this.jobs.shift();
                 if (nextJob) {
-                    nextJob();
+                    nextJob.fn();
                 }
                 resolve();
             };
             const run = () => {
                 this.currentJob = job;
-                return job().then(onDone);
+                return job.fn().then(onDone).catch(e => {
+                    console.error(`Job ${job.id} failed:`);
+                    console.error(e);
+                });
             };
             if (this.currentJob) {
-                this.jobs.push(() => run());
+                this.jobs.push({
+                    id: job.id,
+                    fn: () => run(),
+                });
             }
             else {
                 run();

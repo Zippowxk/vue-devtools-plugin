@@ -34,5 +34,6 @@ export declare class DevtoolsHookable implements Hookable<BackendContext> {
     getInspectorTree(handler: Handler<HookPayloads[Hooks.GET_INSPECTOR_TREE]>): void;
     getInspectorState(handler: Handler<HookPayloads[Hooks.GET_INSPECTOR_STATE]>): void;
     editInspectorState(handler: Handler<HookPayloads[Hooks.EDIT_INSPECTOR_STATE]>): void;
+    setPluginSettings(handler: Handler<HookPayloads[Hooks.SET_PLUGIN_SETTINGS]>): void;
 }
 export {};

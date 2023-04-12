@@ -10,12 +10,12 @@ module.exports = createConfig({
   output: {
     path: path.join(__dirname, '/build'),
     publicPath: '/build/',
-    filename: '[name].js'
+    filename: '[name].js',
   },
   devServer: {
     port: 8091,
-    onBeforeSetupMiddleware (app) {
+    onBeforeSetupMiddleware ({ app }) {
       app.use('/__open-in-editor', openInEditor())
-    }
-  }
+    },
+  },
 })

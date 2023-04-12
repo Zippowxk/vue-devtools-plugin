@@ -1,23 +1,23 @@
 <script lang="ts">
-import { defineComponent, PropType, computed } from '@vue/composition-api'
+import { defineComponent, PropType, computed } from 'vue'
 import { hasPluginPermission, PluginPermission, setPluginPermission } from '@vue-devtools/shared-utils'
 
 export default defineComponent({
   props: {
     pluginId: {
       type: String,
-      required: true
+      required: true,
     },
 
     permission: {
       type: String as PropType<PluginPermission>,
-      required: true
+      required: true,
     },
 
     label: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
 
   setup (props) {
@@ -27,13 +27,13 @@ export default defineComponent({
       },
       set (value: boolean) {
         setPluginPermission(props.pluginId, props.permission, value)
-      }
+      },
     })
 
     return {
-      model
+      model,
     }
-  }
+  },
 })
 </script>
 

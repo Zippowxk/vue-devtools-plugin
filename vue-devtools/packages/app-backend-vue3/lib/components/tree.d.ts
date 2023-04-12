@@ -1,12 +1,14 @@
 import { ComponentFilter } from './filter';
-import { BackendContext } from '@vue-devtools/app-backend-api';
+import { BackendContext, DevtoolsApi } from '@vue-devtools/app-backend-api';
 import { ComponentTreeNode } from '@vue/devtools-api';
 export declare class ComponentWalker {
     ctx: BackendContext;
+    api: DevtoolsApi;
     maxDepth: number;
+    recursively: boolean;
     componentFilter: ComponentFilter;
     captureIds: Map<string, undefined>;
-    constructor(maxDepth: number, filter: string, ctx: BackendContext);
+    constructor(maxDepth: number, filter: string, recursively: boolean, api: DevtoolsApi, ctx: BackendContext);
     getComponentTree(instance: any): Promise<ComponentTreeNode[]>;
     getComponentParents(instance: any): any[];
     /**
@@ -46,4 +48,6 @@ export declare class ComponentWalker {
      * @param {Vue} instance
      */
     private mark;
+    private isKeepAlive;
+    private getKeepAliveCachedInstances;
 }

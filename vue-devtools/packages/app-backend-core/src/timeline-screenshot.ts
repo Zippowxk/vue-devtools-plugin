@@ -1,5 +1,6 @@
 import { BackendContext } from '@vue-devtools/app-backend-api'
 import { ID, ScreenshotOverlayRenderContext } from '@vue/devtools-api'
+import { SharedData } from '@vue-devtools/shared-utils'
 import { JobQueue } from './util/queue'
 import { builtinLayers } from './timeline-builtins'
 
@@ -17,13 +18,14 @@ interface Screenshot {
 }
 
 export async function showScreenshot (screenshot: Screenshot, ctx: BackendContext) {
-  await jobQueue.queue(async () => {
+  await jobQueue.queue('showScreenshot', async () => {
     if (screenshot) {
       if (!container) {
         createElements()
       }
 
       image.src = screenshot.image
+      image.style.visibility = screenshot.image ? 'visible' : 'hidden'
 
       clearContent()
 
@@ -32,14 +34,14 @@ export async function showScreenshot (screenshot: Screenshot, ctx: BackendContex
         event: {
           ...eventData.event,
           layerId: eventData.layerId,
-          renderMeta: {}
-        }
+          renderMeta: {},
+        },
       }))
 
       const renderContext: ScreenshotOverlayRenderContext = {
         screenshot,
         events: events.map(({ event }) => event),
-        index: 0
+        index: 0,
       }
 
       for (let i = 0; i < events.length; i++) {
@@ -56,7 +58,9 @@ export async function showScreenshot (screenshot: Screenshot, ctx: BackendContex
               }
             }
           } catch (e) {
-            console.error(e)
+            if (SharedData.debugInfo) {
+              console.error(e)
+            }
           }
         }
       }

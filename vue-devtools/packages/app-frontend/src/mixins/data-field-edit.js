@@ -1,8 +1,8 @@
 import {
   UNDEFINED,
   SPECIAL_TOKENS,
-  parse
-} from '@utils/util'
+  parse,
+} from '@vue-devtools/shared-utils'
 
 let currentEditedField = null
 
@@ -23,23 +23,23 @@ function numberQuickEditMod (event) {
 export default {
   inject: {
     InspectorInjection: {
-      default: null
-    }
+      default: null,
+    },
   },
 
   props: {
     editable: {
       type: Boolean,
-      default: false
+      default: false,
     },
     removable: {
       type: Boolean,
-      default: false
+      default: false,
     },
     renamable: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
 
   data () {
@@ -48,14 +48,14 @@ export default {
       editedValue: null,
       editedKey: null,
       addingValue: false,
-      newField: null
+      newField: null,
     }
   },
 
   computed: {
     cssClass () {
       return {
-        editing: this.editing
+        editing: this.editing,
       }
     },
 
@@ -71,7 +71,7 @@ export default {
     },
 
     isValueEditable () {
-      const type = this.valueType
+      const type = this.interpretedValueType
       return this.isEditable &&
         (
           type === 'null' ||
@@ -83,7 +83,7 @@ export default {
     },
 
     isSubfieldsEditable () {
-      return this.isEditable && (this.valueType === 'array' || this.valueType === 'plain-object')
+      return this.isEditable && (this.interpretedValueType === 'array' || this.interpretedValueType === 'plain-object')
     },
 
     valueValid () {
@@ -115,8 +115,8 @@ export default {
           return [
             {
               icon: value ? 'check_box' : 'check_box_outline_blank',
-              newValue: !value
-            }
+              newValue: !value,
+            },
           ]
         } else if (type === 'number') {
           return [
@@ -124,19 +124,19 @@ export default {
               icon: 'remove',
               class: 'big',
               title: this.quickEditNumberTooltip('-'),
-              newValue: event => value - numberQuickEditMod(event)
+              newValue: event => value - numberQuickEditMod(event),
             },
             {
               icon: 'add',
               class: 'big',
               title: this.quickEditNumberTooltip('+'),
-              newValue: event => value + numberQuickEditMod(event)
-            }
+              newValue: event => value + numberQuickEditMod(event),
+            },
           ]
         }
       }
       return null
-    }
+    },
   },
 
   methods: {
@@ -145,7 +145,12 @@ export default {
         if (currentEditedField && currentEditedField !== this) {
           currentEditedField.cancelEdit()
         }
-        this.editedValue = this.transformSpecialTokens(JSON.stringify(this.field.value), true)
+        let valueToEdit = this.field.value
+        // Edit custom value (we don't want to edit the whole custom value data object)
+        if (this.valueType === 'custom') {
+          valueToEdit = valueToEdit._custom.value
+        }
+        this.editedValue = this.transformSpecialTokens(JSON.stringify(valueToEdit), true)
         this.editedKey = this.field.key
         this.editing = true
         currentEditedField = this
@@ -166,7 +171,16 @@ export default {
     submitEdit () {
       if (this.editValid) {
         this.editing = false
-        const value = this.transformSpecialTokens(this.editedValue, false)
+        let value = this.transformSpecialTokens(this.editedValue, false)
+        // We need to send the entire custom value data object
+        if (this.valueType === 'custom') {
+          value = JSON.stringify({
+            _custom: {
+              ...this.field.value._custom,
+              value: JSON.parse(value), // Input
+            },
+          })
+        }
         const newKey = this.editedKey !== this.field.key ? this.editedKey : undefined
         this.sendEdit({ value, newKey })
         this.$emit('submit-edit')
@@ -178,19 +192,21 @@ export default {
     },
 
     transformSpecialTokens (str, display) {
-      Object.keys(SPECIAL_TOKENS).forEach(key => {
-        const value = JSON.stringify(SPECIAL_TOKENS[key])
-        let search
-        let replace
-        if (display) {
-          search = value
-          replace = key
-        } else {
-          search = key
-          replace = value
-        }
-        str = str.replace(new RegExp(search, 'g'), replace)
-      })
+      if (str) {
+        Object.keys(SPECIAL_TOKENS).forEach(key => {
+          const value = JSON.stringify(SPECIAL_TOKENS[key])
+          let search
+          let replace
+          if (display) {
+            search = value
+            replace = key
+          } else {
+            search = key
+            replace = value
+          }
+          str = str.replace(new RegExp(search, 'g'), replace)
+        })
+      }
       return str
     },
 
@@ -210,9 +226,9 @@ export default {
 
     addNewValue () {
       let key
-      if (this.valueType === 'array') {
+      if (this.interpretedValueType === 'array') {
         key = this.field.value.length
-      } else if (this.valueType === 'plain-object') {
+      } else if (this.interpretedValueType === 'plain-object') {
         let i = 1
         while (this.field.value.hasOwnProperty(key = `prop${i}`)) i++
       }
@@ -234,8 +250,8 @@ export default {
 
     quickEditNumberTooltip (operator) {
       return this.$t('DataField.quickEdit.number.tooltip', {
-        operator
+        operator,
       })
-    }
-  }
+    },
+  },
 }

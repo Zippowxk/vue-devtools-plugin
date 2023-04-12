@@ -1,6 +1,12 @@
-require('./build/hook.js')
+const isBrowser = typeof window !== 'undefined'
 
-const target = typeof window !== 'undefined'
+if (isBrowser) {
+  require('./build/hook.js')
+} else {
+  require('./build-node/hook.js')
+}
+
+const target = isBrowser
   ? window
   : typeof global !== 'undefined'
     ? global
@@ -14,11 +20,15 @@ module.exports = {
     if (showToast) target.__VUE_DEVTOOLS_TOAST__ = showToast
     if (app) target.__VUE_ROOT_INSTANCES__ = Array.isArray(app) ? app : [app]
 
-    require('./build/backend.js')
+    if (isBrowser) {
+      require('./build/backend.js')
+    } else {
+      require('./build-node/backend.js')
+    }
   },
   init: (Vue) => {
     const tools = target.__VUE_DEVTOOLS_GLOBAL_HOOK__
 
     tools.emit('init', Vue)
-  }
+  },
 }

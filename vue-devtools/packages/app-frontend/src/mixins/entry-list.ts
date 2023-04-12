@@ -1,13 +1,15 @@
-import { defineComponent } from '@vue/composition-api'
+// @ts-nocheck (Unused file)
+
+import { defineComponent } from 'vue'
 import debounce from 'lodash/debounce'
 
 export default function ({
-  indexOffset = 0
+  indexOffset = 0,
 } = {}) {
   // @vue/component
   return defineComponent({
     watch: {
-      inspectedIndex: 'refreshScrollToInspected'
+      inspectedIndex: 'refreshScrollToInspected',
     },
 
     mounted () {
@@ -20,7 +22,7 @@ export default function ({
 
     methods: {
       refreshScrollToInspected () {
-        if (this.inspectedIndex) this.scrollIntoInspected(this.inspectedIndex)
+        if (this.inspectedIndex) this.scrollIntoInspected(this.inspectedIndex as number)
       },
 
       scrollIntoInspected: debounce(async function (index) {
@@ -44,9 +46,9 @@ export default function ({
           scroller.scrollTop = top + height - parentHeight
         }
       } as (this: any, index: number) => Promise<void>, 200, {
-        leading: true
-      })
-    }
+        leading: true,
+      }),
+    },
   })
 }
 

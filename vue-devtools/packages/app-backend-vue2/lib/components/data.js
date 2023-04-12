@@ -1,12 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.editState = exports.findInstanceOrVnode = exports.getInstanceName = exports.reduceStateList = exports.getCustomInstanceDetails = exports.getInstanceDetails = void 0;
+exports.editState = exports.findInstanceOrVnode = exports.getCustomObjectDetails = exports.getInstanceName = exports.reduceStateList = exports.getCustomInstanceDetails = exports.getInstanceDetails = void 0;
 const shared_utils_1 = require("@vue-devtools/shared-utils");
-const shared_data_1 = __importDefault(require("@vue-devtools/shared-utils/lib/shared-data"));
 const tree_1 = require("./tree");
+require("core-js/modules/es.object.entries");
 /**
  * Get the detailed information of an inspected instance.
  */
@@ -18,7 +15,7 @@ function getInstanceDetails(instance) {
             return null;
         const fakeInstance = {
             $options: vnode.fnOptions,
-            ...((_a = vnode.devtoolsMeta) === null || _a === void 0 ? void 0 : _a.renderContext.props)
+            ...((_a = vnode.devtoolsMeta) === null || _a === void 0 ? void 0 : _a.renderContext.props),
         };
         if (!fakeInstance.$options.props && ((_b = vnode.devtoolsMeta) === null || _b === void 0 ? void 0 : _b.renderContext.props)) {
             fakeInstance.$options.props = Object.keys(vnode.devtoolsMeta.renderContext.props).reduce((obj, key) => {
@@ -28,10 +25,10 @@ function getInstanceDetails(instance) {
         }
         const data = {
             id: instance.__VUE_DEVTOOLS_UID__,
-            name: shared_utils_1.getComponentName(vnode.fnOptions),
+            name: (0, shared_utils_1.getComponentName)(vnode.fnOptions),
             file: instance.type ? instance.type.__file : vnode.fnOptions.__file || null,
             state: getFunctionalInstanceState(fakeInstance),
-            functional: true
+            functional: true,
         };
         return data;
     }
@@ -39,7 +36,7 @@ function getInstanceDetails(instance) {
         id: instance.__VUE_DEVTOOLS_UID__,
         name: getInstanceName(instance),
         state: getInstanceState(instance),
-        file: null
+        file: null,
     };
     let i;
     if ((i = instance.$vnode) && (i = i.componentOptions) && (i = i.Ctor) && (i = i.options)) {
@@ -49,7 +46,7 @@ function getInstanceDetails(instance) {
 }
 exports.getInstanceDetails = getInstanceDetails;
 function getInstanceState(instance) {
-    return processProps(instance).concat(processState(instance), processRefs(instance), processComputed(instance), processInjected(instance), processRouteContext(instance), processVuexGetters(instance), processFirebaseBindings(instance), processObservables(instance), processAttrs(instance));
+    return processProps(instance).concat(processState(instance), processSetupState(instance), processRefs(instance), processComputed(instance), processInjected(instance), processRouteContext(instance), processVuexGetters(instance), processFirebaseBindings(instance), processObservables(instance), processAttrs(instance));
 }
 function getFunctionalInstanceState(instance) {
     return processProps(instance);
@@ -64,9 +61,9 @@ function getCustomInstanceDetails(instance) {
             tooltip: 'Component instance',
             value: reduceStateList(state),
             fields: {
-                abstract: true
-            }
-        }
+                abstract: true,
+            },
+        },
     };
 }
 exports.getCustomInstanceDetails = getCustomInstanceDetails;
@@ -86,7 +83,7 @@ exports.reduceStateList = reduceStateList;
  * Get the appropriate display name for an instance.
  */
 function getInstanceName(instance) {
-    const name = shared_utils_1.getComponentName(instance.$options || instance.fnOptions || {});
+    const name = (0, shared_utils_1.getComponentName)(instance.$options || instance.fnOptions || {});
     if (name)
         return name;
     return instance.$root === instance
@@ -104,7 +101,7 @@ function processProps(instance) {
     const propsData = [];
     for (let key in props) {
         const prop = props[key];
-        key = shared_utils_1.camelize(key);
+        key = (0, shared_utils_1.camelize)(key);
         propsData.push({
             type: 'props',
             key,
@@ -112,12 +109,12 @@ function processProps(instance) {
             meta: prop
                 ? {
                     type: prop.type ? getPropType(prop.type) : 'any',
-                    required: !!prop.required
+                    required: !!prop.required,
                 }
                 : {
-                    type: 'invalid'
+                    type: 'invalid',
                 },
-            editable: shared_data_1.default.editableProps
+            editable: shared_utils_1.SharedData.editableProps,
         });
     }
     return propsData;
@@ -127,7 +124,7 @@ function processAttrs(instance) {
         return {
             type: '$attrs',
             key,
-            value
+            value,
         };
     });
 }
@@ -138,6 +135,9 @@ const fnTypeRE = /^(?:function|class) (\w+)/;
 function getPropType(type) {
     if (Array.isArray(type)) {
         return type.map(t => getPropType(t)).join(' or ');
+    }
+    if (type == null) {
+        return 'null';
     }
     const match = type.toString().match(fnTypeRE);
     return typeof type === 'function'
@@ -160,16 +160,108 @@ function processState(instance) {
         key,
         type: 'data',
         value: instance._data[key],
-        editable: true
+        editable: true,
     }));
 }
+function processSetupState(instance) {
+    const state = instance._setupProxy || instance;
+    const raw = instance._setupState;
+    if (!raw) {
+        return [];
+    }
+    return Object.keys(raw)
+        .filter(key => !key.startsWith('__'))
+        .map(key => {
+        var _a, _b, _c;
+        const value = returnError(() => toRaw(state[key]));
+        const rawData = raw[key];
+        let result;
+        if (rawData) {
+            const info = getSetupStateInfo(rawData);
+            const objectType = info.computed ? 'Computed' : info.ref ? 'Ref' : info.reactive ? 'Reactive' : null;
+            const isState = info.ref || info.computed || info.reactive;
+            const isOther = typeof value === 'function' || typeof (value === null || value === void 0 ? void 0 : value.render) === 'function';
+            // effect is a Vue 2 Watcher instance
+            const raw = ((_a = rawData.effect) === null || _a === void 0 ? void 0 : _a.expression) || ((_c = (_b = rawData.effect) === null || _b === void 0 ? void 0 : _b.getter) === null || _c === void 0 ? void 0 : _c.toString());
+            result = {
+                ...objectType ? { objectType } : {},
+                ...raw ? { raw } : {},
+                editable: isState && !info.readonly,
+                type: isOther ? 'setup (other)' : 'setup',
+            };
+        }
+        else {
+            result = {
+                type: 'setup',
+            };
+        }
+        return {
+            key,
+            value,
+            ...result,
+        };
+    });
+}
+function returnError(cb) {
+    try {
+        return cb();
+    }
+    catch (e) {
+        return e;
+    }
+}
+function isRef(raw) {
+    return !!raw.__v_isRef;
+}
+function isComputed(raw) {
+    return isRef(raw) && !!raw.effect;
+}
+function isReactive(raw) {
+    return !!raw.__ob__;
+}
+function isReadOnly(raw) {
+    return !!raw.__v_isReadonly;
+}
+function toRaw(value) {
+    if (value === null || value === void 0 ? void 0 : value.__v_raw) {
+        return value.__v_raw;
+    }
+    return value;
+}
+function getSetupStateInfo(raw) {
+    return {
+        ref: isRef(raw),
+        computed: isComputed(raw),
+        reactive: isReactive(raw),
+        readonly: isReadOnly(raw),
+    };
+}
+function getCustomObjectDetails(object, proto) {
+    var _a, _b, _c, _d;
+    const info = getSetupStateInfo(object);
+    const isState = info.ref || info.computed || info.reactive;
+    if (isState) {
+        const objectType = info.computed ? 'Computed' : info.ref ? 'Ref' : info.reactive ? 'Reactive' : null;
+        const value = toRaw(info.reactive ? object : object._value);
+        const raw = ((_b = (_a = object.effect) === null || _a === void 0 ? void 0 : _a.raw) === null || _b === void 0 ? void 0 : _b.toString()) || ((_d = (_c = object.effect) === null || _c === void 0 ? void 0 : _c.fn) === null || _d === void 0 ? void 0 : _d.toString());
+        return {
+            _custom: {
+                type: objectType.toLowerCase(),
+                objectType,
+                value,
+                ...raw ? { tooltip: `<span class="font-mono">${raw}</span>` } : {},
+            },
+        };
+    }
+}
+exports.getCustomObjectDetails = getCustomObjectDetails;
 /**
  * Process refs
  */
 function processRefs(instance) {
     return Object.keys(instance.$refs)
         .filter(key => instance.$refs[key])
-        .map(key => shared_utils_1.getCustomRefDetails(instance, key, instance.$refs[key]));
+        .map(key => (0, shared_utils_1.getCustomRefDetails)(instance, key, instance.$refs[key]));
 }
 /**
  * Process the computed properties of an instance.
@@ -193,14 +285,14 @@ function processComputed(instance) {
             computedProp = {
                 type,
                 key,
-                value: instance[key]
+                value: instance[key],
             };
         }
         catch (e) {
             computedProp = {
                 type,
                 key,
-                value: e
+                value: e,
             };
         }
         computed.push(computedProp);
@@ -217,7 +309,7 @@ function processInjected(instance) {
             return {
                 key,
                 type: 'injected',
-                value: instance[key]
+                value: instance[key],
             };
         });
     }
@@ -249,9 +341,9 @@ function processRouteContext(instance) {
                         _custom: {
                             type: 'router',
                             abstract: true,
-                            value
-                        }
-                    }
+                            value,
+                        },
+                    },
                 }];
         }
     }
@@ -271,7 +363,7 @@ function processVuexGetters(instance) {
             return {
                 type: 'vuex getters',
                 key,
-                value: instance[key]
+                value: instance[key],
             };
         });
     }
@@ -289,7 +381,7 @@ function processFirebaseBindings(instance) {
             return {
                 type: 'firebase bindings',
                 key,
-                value: instance[key]
+                value: instance[key],
             };
         });
     }
@@ -307,7 +399,7 @@ function processObservables(instance) {
             return {
                 type: 'observables',
                 key,
-                value: instance[key]
+                value: instance[key],
             };
         });
     }
@@ -324,18 +416,30 @@ function findInstanceOrVnode(id) {
     return tree_1.instanceMap.get(id);
 }
 exports.findInstanceOrVnode = findInstanceOrVnode;
-function editState({ componentInstance, path, state, type }) {
+function editState({ componentInstance, path, state, type, }, stateEditor) {
     if (!['data', 'props', 'computed', 'setup'].includes(type))
         return;
-    const data = shared_utils_1.has(componentInstance._props, path, !!state.newKey)
-        ? componentInstance._props
-        : componentInstance._data;
-    shared_utils_1.set(data, path, state.value, (obj, field, value) => {
-        if (state.remove || state.newKey)
-            componentInstance.$delete(obj, field);
-        if (!state.remove)
-            componentInstance.$set(obj, state.newKey || field, value);
-    });
+    let target;
+    const targetPath = path.slice();
+    if (stateEditor.has(componentInstance._props, path, !!state.newKey)) {
+        // props
+        target = componentInstance._props;
+    }
+    else if (componentInstance._setupState &&
+        Object.keys(componentInstance._setupState).includes(path[0])) {
+        // setup
+        target = componentInstance._setupProxy;
+        const currentValue = stateEditor.get(target, path);
+        if (currentValue != null) {
+            const info = getSetupStateInfo(currentValue);
+            if (info.readonly)
+                return;
+        }
+    }
+    else {
+        target = componentInstance._data;
+    }
+    stateEditor.set(target, targetPath, 'value' in state ? state.value : undefined, stateEditor.createDefaultSetCallback(state));
 }
 exports.editState = editState;
 //# sourceMappingURL=data.js.map

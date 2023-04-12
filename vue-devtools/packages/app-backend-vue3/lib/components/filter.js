@@ -14,8 +14,9 @@ class ComponentFilter {
      * @return {Boolean}
      */
     isQualified(instance) {
-        const name = shared_utils_1.classify(util_1.getInstanceName(instance)).toLowerCase();
-        return name.indexOf(this.filter) > -1;
+        const name = (0, util_1.getInstanceName)(instance);
+        return (0, shared_utils_1.classify)(name).toLowerCase().indexOf(this.filter) > -1 ||
+            (0, shared_utils_1.kebabize)(name).toLowerCase().indexOf(this.filter) > -1;
     }
 }
 exports.ComponentFilter = ComponentFilter;

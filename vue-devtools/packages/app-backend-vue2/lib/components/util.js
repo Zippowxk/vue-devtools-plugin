@@ -10,7 +10,7 @@ exports.isBeingDestroyed = isBeingDestroyed;
  * Get the appropriate display name for an instance.
  */
 function getInstanceName(instance) {
-    const name = shared_utils_1.getComponentName(instance.$options || instance.fnOptions || {});
+    const name = (0, shared_utils_1.getComponentName)(instance.$options || instance.fnOptions || {});
     if (name)
         return name;
     return instance.$root === instance
@@ -39,10 +39,16 @@ exports.getRenderKey = getRenderKey;
 /**
  * Returns a devtools unique id for instance.
  */
-function getUniqueId(instance) {
+function getUniqueId(instance, appRecord) {
     if (instance.__VUE_DEVTOOLS_UID__ != null)
         return instance.__VUE_DEVTOOLS_UID__;
-    const rootVueId = instance.$root.__VUE_DEVTOOLS_ROOT_UID__;
+    let rootVueId = instance.$root.__VUE_DEVTOOLS_APP_RECORD_ID__;
+    if (!rootVueId && appRecord) {
+        rootVueId = appRecord.id;
+    }
+    if (!rootVueId) {
+        rootVueId = '_unmounted';
+    }
     return `${rootVueId}:${instance._uid}`;
 }
 exports.getUniqueId = getUniqueId;

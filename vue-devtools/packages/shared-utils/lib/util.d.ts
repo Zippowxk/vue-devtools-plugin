@@ -23,7 +23,13 @@ export declare const SPECIAL_TOKENS: {
 export declare const MAX_STRING_SIZE = 10000;
 export declare const MAX_ARRAY_SIZE = 5000;
 export declare function specialTokenToString(value: any): false | "undefined" | "null" | "NaN" | "Infinity" | "-Infinity";
-export declare function stringify(data: any): any;
+declare const replacers: {
+    internal: typeof replacerForInternal;
+    user: typeof replaceForUser;
+};
+export declare function stringify(data: any, target?: keyof typeof replacers): any;
+declare function replacerForInternal(key: any): any;
+declare function replaceForUser(key: any): any;
 export declare function getCustomMapDetails(val: any): {
     _custom: {
         type: string;
@@ -73,11 +79,10 @@ export declare function isPlainObject(obj: any): boolean;
  */
 export declare function searchDeepInObject(obj: any, searchTerm: any): boolean;
 export declare function sortByKey(state: any): any;
-export declare function set(object: any, path: any, value: any, cb?: any): void;
-export declare function get(object: any, path: any): any;
-export declare function has(object: any, path: any, parent?: boolean): boolean;
+export declare function simpleGet(object: any, path: any): any;
 export declare function focusInput(el: any): void;
 export declare function openInEditor(file: any): void;
 export declare function escape(s: any): any;
 export declare function copyToClipboard(state: any): void;
 export declare function isEmptyObject(obj: any): boolean;
+export {};

@@ -1,7 +1,8 @@
 export const backendInjections = {
   instanceMap: new Map(),
   isVueInstance: (() => false) as ((value: any) => boolean),
-  getCustomInstanceDetails: (() => ({})) as ((instance: any) => any)
+  getCustomInstanceDetails: (() => ({})) as ((instance: any) => any),
+  getCustomObjectDetails: (() => undefined) as (value: any, proto: string) => any,
 }
 
 export function getInstanceMap () {
@@ -10,6 +11,10 @@ export function getInstanceMap () {
 
 export function getCustomInstanceDetails (instance) {
   return backendInjections.getCustomInstanceDetails(instance)
+}
+
+export function getCustomObjectDetails (value, proto: string) {
+  return backendInjections.getCustomObjectDetails(value, proto)
 }
 
 export function isVueInstance (value) {
@@ -24,12 +29,12 @@ export function getCustomRouterDetails (router) {
       display: 'VueRouter',
       value: {
         options: router.options,
-        currentRoute: router.currentRoute
+        currentRoute: router.currentRoute,
       },
       fields: {
-        abstract: true
-      }
-    }
+        abstract: true,
+      },
+    },
   }
 }
 
@@ -41,12 +46,12 @@ export function getCustomStoreDetails (store) {
       display: 'Store',
       value: {
         state: store.state,
-        getters: getCatchedGetters(store)
+        getters: getCatchedGetters(store),
       },
       fields: {
-        abstract: true
-      }
-    }
+        abstract: true,
+      },
+    },
   }
 }
 
@@ -66,7 +71,7 @@ export function getCatchedGetters (store) {
         } catch (e) {
           return e
         }
-      }
+      },
     })
   }
 

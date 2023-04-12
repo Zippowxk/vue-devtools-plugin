@@ -1,20 +1,24 @@
 import { isBeingDestroyed, getUniqueComponentId, getInstanceName, getRenderKey, isFragment } from './util'
 import { ComponentFilter } from './filter'
-import { BackendContext } from '@vue-devtools/app-backend-api'
+import { BackendContext, DevtoolsApi } from '@vue-devtools/app-backend-api'
 import { ComponentTreeNode } from '@vue/devtools-api'
-import { getInstanceOrVnodeRect } from './el'
+import { getRootElementsFromComponentInstance } from './el'
 
 export class ComponentWalker {
   ctx: BackendContext
+  api: DevtoolsApi
   maxDepth: number
+  recursively: boolean
   componentFilter: ComponentFilter
   // Dedupe instances
   // Some instances may be both on a component and on a child abstract/functional component
   captureIds: Map<string, undefined>
 
-  constructor (maxDepth: number, filter: string, ctx: BackendContext) {
+  constructor (maxDepth: number, filter: string, recursively: boolean, api: DevtoolsApi, ctx: BackendContext) {
     this.ctx = ctx
+    this.api = api
     this.maxDepth = maxDepth
+    this.recursively = recursively
     this.componentFilter = new ComponentFilter(filter)
   }
 
@@ -48,7 +52,10 @@ export class ComponentWalker {
       return [await this.capture(instance, null, depth)]
     } else if (instance.subTree) {
       // TODO functional components
-      return this.findQualifiedChildrenFromList(this.getInternalInstanceChildren(instance.subTree), depth)
+      const list = this.isKeepAlive(instance)
+        ? this.getKeepAliveCachedInstances(instance)
+        : this.getInternalInstanceChildren(instance.subTree)
+      return this.findQualifiedChildrenFromList(list, depth)
     } else {
       return []
     }
@@ -76,27 +83,30 @@ export class ComponentWalker {
   /**
    * Get children from a component instance.
    */
-  private getInternalInstanceChildren (subTree) {
+  private getInternalInstanceChildren (subTree, suspense = null) {
     const list = []
-    if (subTree.component) {
-      list.push(subTree.component)
-    }
-    if (subTree.suspense) {
-      list.push(...this.getInternalInstanceChildren(subTree.suspense.activeBranch))
-    }
-    if (Array.isArray(subTree.children)) {
-      subTree.children.forEach(childSubTree => {
-        if (childSubTree.component) {
-          list.push(childSubTree.component)
-        } else {
-          list.push(...this.getInternalInstanceChildren(childSubTree))
-        }
-      })
+    if (subTree) {
+      if (subTree.component) {
+        !suspense ? list.push(subTree.component) : list.push({ ...subTree.component, suspense })
+      } else if (subTree.suspense) {
+        const suspenseKey = !subTree.suspense.isInFallback ? 'suspense default' : 'suspense fallback'
+        list.push(...this.getInternalInstanceChildren(subTree.suspense.activeBranch, { ...subTree.suspense, suspenseKey }))
+      } else if (Array.isArray(subTree.children)) {
+        subTree.children.forEach(childSubTree => {
+          if (childSubTree.component) {
+            !suspense ? list.push(childSubTree.component) : list.push({ ...childSubTree.component, suspense })
+          } else {
+            list.push(...this.getInternalInstanceChildren(childSubTree, suspense))
+          }
+        })
+      }
     }
     return list.filter(child => !isBeingDestroyed(child) && !child.type.devtools?.hide)
   }
 
-  private captureId (instance) {
+  private captureId (instance): string {
+    if (!instance) return null
+
     // instance.uid is not reliable in devtools as there
     // may be 2 roots with same uid which causes unexpected
     // behaviour
@@ -122,6 +132,8 @@ export class ComponentWalker {
    * @return {Object}
    */
   private async capture (instance: any, list: any[], depth: number): Promise<ComponentTreeNode> {
+    if (!instance) return null
+
     const id = this.captureId(instance)
 
     const name = getInstanceName(instance)
@@ -129,54 +141,80 @@ export class ComponentWalker {
     const children = this.getInternalInstanceChildren(instance.subTree)
       .filter(child => !isBeingDestroyed(child))
 
+    const parents = this.getComponentParents(instance) || []
+
+    const inactive = !!instance.isDeactivated || parents.some(parent => parent.isDeactivated)
+
     const treeNode: ComponentTreeNode = {
       uid: instance.uid,
       id,
       name,
       renderKey: getRenderKey(instance.vnode ? instance.vnode.key : null),
-      inactive: !!instance.isDeactivated,
+      inactive,
       hasChildren: !!children.length,
       children: [],
       isFragment: isFragment(instance),
-      tags: []
+      tags: typeof instance.type !== 'function'
+        ? []
+        : [
+            {
+              label: 'functional',
+              textColor: 0x555555,
+              backgroundColor: 0xeeeeee,
+            },
+          ],
+      autoOpen: this.recursively,
     }
 
     // capture children
-    if (depth < this.maxDepth) {
+    if (depth < this.maxDepth || instance.type.__isKeepAlive || parents.some(parent => parent.type.__isKeepAlive)) {
       treeNode.children = await Promise.all(children
         .map((child, index, list) => this.capture(child, list, depth + 1))
         .filter(Boolean))
     }
 
     // keep-alive
-    if (instance.type.__isKeepAlive && instance.__v_cache) {
-      const cachedComponents = Array.from(instance.__v_cache.values()).map((vnode: any) => vnode.component).filter(Boolean)
-      for (const child of cachedComponents) {
-        if (!children.includes(child)) {
-          const node = await this.capture(child, null, depth + 1)
+    if (this.isKeepAlive(instance)) {
+      const cachedComponents = this.getKeepAliveCachedInstances(instance)
+      const childrenIds = children.map(child => child.__VUE_DEVTOOLS_UID__)
+      for (const cachedChild of cachedComponents) {
+        if (!childrenIds.includes(cachedChild.__VUE_DEVTOOLS_UID__)) {
+          const node = await this.capture({ ...cachedChild, isDeactivated: true }, null, depth + 1)
           if (node) {
-            node.inactive = true
             treeNode.children.push(node)
           }
         }
       }
     }
 
-    // record screen position to ensure correct ordering
-    if ((!list || list.length > 1) && !instance._inactive) {
-      const rect = getInstanceOrVnodeRect(instance)
-      treeNode.positionTop = rect ? rect.top : Infinity
+    // ensure correct ordering
+    const rootElements = getRootElementsFromComponentInstance(instance)
+    const firstElement = rootElements[0]
+    if (firstElement?.parentElement) {
+      const parentInstance = instance.parent
+      const parentRootElements = parentInstance ? getRootElementsFromComponentInstance(parentInstance) : []
+      let el = firstElement
+      const indexList = []
+      do {
+        indexList.push(Array.from(el.parentElement.childNodes).indexOf(el))
+        el = el.parentElement
+      } while (el.parentElement && parentRootElements.length && !parentRootElements.includes(el))
+      treeNode.domOrder = indexList.reverse()
+    } else {
+      treeNode.domOrder = [-1]
     }
 
-    if (instance.suspense) {
+    if (instance.suspense?.suspenseKey) {
       treeNode.tags.push({
-        label: 'suspense',
-        backgroundColor: 0x7d7dd7,
-        textColor: 0xffffff
+        label: instance.suspense.suspenseKey,
+        backgroundColor: 0xe492e4,
+        textColor: 0xffffff,
       })
+      // update instanceMap
+      this.mark(instance, true)
     }
 
-    return this.ctx.api.visitComponentTree(instance, treeNode, this.componentFilter.filter, this.ctx.currentAppRecord.options.app)
+    return this.api.visitComponentTree(instance, treeNode, this.componentFilter.filter, this.ctx.currentAppRecord.options.app)
   }
 
   /**
@@ -184,10 +222,18 @@ export class ComponentWalker {
    *
    * @param {Vue} instance
    */
-  private mark (instance) {
+  private mark (instance, force = false) {
     const instanceMap = this.ctx.currentAppRecord.instanceMap
-    if (!instanceMap.has(instance.__VUE_DEVTOOLS_UID__)) {
+    if (force || !instanceMap.has(instance.__VUE_DEVTOOLS_UID__)) {
       instanceMap.set(instance.__VUE_DEVTOOLS_UID__, instance)
     }
+  }
+
+  private isKeepAlive (instance) {
+    return instance.type.__isKeepAlive && instance.__v_cache
+  }
+
+  private getKeepAliveCachedInstances (instance) {
+    return Array.from(instance.__v_cache.values()).map((vnode: any) => vnode.component).filter(Boolean)
   }
 }

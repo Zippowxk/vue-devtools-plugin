@@ -15,7 +15,7 @@ module.exports = {
   //   outputModule: true,
   // },
   output: {
-    path: Path.resolve(__dirname, "./packages/dist"),
+    path:  process.env.NODE_ENV == 'production' ? Path.resolve(__dirname, "./packages/dist") :  Path.resolve(__dirname, "./dev/src/debug"),
     filename: "[name].js",
     library: "vueVconsoleDevtools",
     libraryTarget: "umd",
@@ -73,7 +73,7 @@ module.exports = {
             switches: false,
             toplevel: false,
             typeofs: false,
-            drop_console: true,
+            drop_console: process.env.NODE_ENV == 'production',
             // a few flags with noticable gains/speed ratio
             // numbers based on out of the box vendor bundle
             booleans: true,

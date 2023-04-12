@@ -1,13 +1,13 @@
 import { Bridge } from '@vue-devtools/shared-utils';
-import { TimelineLayerOptions, App, CustomInspectorOptions, TimelineEventOptions, WithId, ID } from '@vue/devtools-api';
+import { TimelineLayerOptions, CustomInspectorOptions, TimelineEventOptions, WithId, ID, TimelineMarkerOptions } from '@vue/devtools-api';
 import { AppRecord } from './app-record';
-import { DevtoolsApi } from './api';
 import { Plugin } from './plugin';
 import { DevtoolsHook } from './global-hook';
+import { DevtoolsBackend } from './backend';
 export interface BackendContext {
     bridge: Bridge;
     hook: DevtoolsHook;
-    api: DevtoolsApi;
+    backends: DevtoolsBackend[];
     appRecords: AppRecord[];
     currentTab: string;
     currentAppRecord: AppRecord;
@@ -19,14 +19,18 @@ export interface BackendContext {
     timelineEventMap: Map<ID, TimelineEventOptions & WithId>;
     perfUniqueGroupId: number;
     customInspectors: CustomInspector[];
+    timelineMarkers: TimelineMarker[];
 }
 export interface TimelineLayer extends TimelineLayerOptions {
-    app: App;
+    appRecord: AppRecord | null;
     plugin: Plugin;
     events: (TimelineEventOptions & WithId)[];
 }
+export interface TimelineMarker extends TimelineMarkerOptions {
+    appRecord: AppRecord | null;
+}
 export interface CustomInspector extends CustomInspectorOptions {
-    app: App;
+    appRecord: AppRecord;
     plugin: Plugin;
     treeFilter: string;
     selectedNodeId: string;

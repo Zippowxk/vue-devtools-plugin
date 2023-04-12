@@ -3,8 +3,9 @@ import SplitPane from '@front/features/layout/SplitPane.vue'
 import EmptyPane from '@front/features/layout/EmptyPane.vue'
 import CustomInspectorNode from './CustomInspectorNode.vue'
 import CustomInspectorSelectedNodePane from './CustomInspectorSelectedNodePane.vue'
+import PluginSourceIcon from '../../plugin/PluginSourceIcon.vue'
 
-import { watch, ref, provide, defineComponent } from '@vue/composition-api'
+import { watch, ref, provide, defineComponent } from 'vue'
 import { BridgeEvents } from '@vue-devtools/shared-utils'
 import { useBridge } from '@front/features/bridge'
 import { useCurrentInspector } from './composable'
@@ -14,7 +15,8 @@ export default defineComponent({
     SplitPane,
     EmptyPane,
     CustomInspectorNode,
-    CustomInspectorSelectedNodePane
+    CustomInspectorSelectedNodePane,
+    PluginSourceIcon,
   },
 
   setup () {
@@ -22,7 +24,7 @@ export default defineComponent({
       currentInspector: inspector,
       refreshInspector,
       refreshTree,
-      selectNode
+      selectNode,
     } = useCurrentInspector()
 
     watch(() => inspector.value && inspector.value.treeFilter, () => {
@@ -32,7 +34,7 @@ export default defineComponent({
     watch(inspector, () => {
       refreshInspector()
     }, {
-      immediate: true
+      immediate: true,
     })
 
     // Scroller
@@ -56,14 +58,14 @@ export default defineComponent({
 
     // Custom actions
     const {
-      bridge
+      bridge,
     } = useBridge()
 
     function executeCustomAction (index: number) {
       bridge.send(BridgeEvents.TO_BACK_CUSTOM_INSPECTOR_ACTION, {
         inspectorId: inspector.value.id,
         appId: inspector.value.appId,
-        actionIndex: index
+        actionIndex: index,
       })
     }
 
@@ -73,9 +75,9 @@ export default defineComponent({
       treeScroller,
       selectNextChild,
       selectPreviousChild,
-      executeCustomAction
+      executeCustomAction,
     }
-  }
+  },
 })
 </script>
 
@@ -86,12 +88,18 @@ export default defineComponent({
     >
       <template #left>
         <div class="flex flex-col h-full">
-          <VueInput
-            v-model="inspector.treeFilter"
-            icon-left="search"
-            :placeholder="inspector.treeFilterPlaceholder || 'Search...'"
-            class="search flat border-b border-gray-200 dark:border-gray-800"
-          />
+          <div class="border-b border-gray-200 dark:border-gray-800 flex items-center pr-2 h-8 box-content">
+            <VueInput
+              v-model="inspector.treeFilter"
+              icon-left="search"
+              :placeholder="inspector.treeFilterPlaceholder || 'Search...'"
+              class="search flat min-w-0 flex-1 mr-2"
+            />
+
+            <PluginSourceIcon
+              :plugin-id="inspector.pluginId"
+            />
+          </div>
 
           <div
             ref="treeScroller"

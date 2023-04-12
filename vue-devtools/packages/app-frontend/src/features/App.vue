@@ -3,12 +3,21 @@ import AppHeader from './header/AppHeader.vue'
 import AppConnecting from './connection/AppConnecting.vue'
 import AppDisconnected from './connection/AppDisconnected.vue'
 import ErrorOverlay from './error/ErrorOverlay.vue'
+import SplitPane from './layout/SplitPane.vue'
+import AppSelectPane from './apps/AppSelectPane.vue'
 
-import { onMounted, defineComponent } from '@vue/composition-api'
-import { isChrome, setStorage, getStorage } from '@vue-devtools/shared-utils'
-import SharedData, { watchSharedData, onSharedDataInit } from '@utils/shared-data'
+import { onMounted, defineComponent } from 'vue'
+import {
+  isChrome,
+  setStorage,
+  getStorage,
+  SharedData,
+  watchSharedData,
+  onSharedDataInit,
+} from '@vue-devtools/shared-utils'
 import { darkMode } from '@front/util/theme'
 import { useAppConnection } from './connection'
+import { showAppsSelector } from './header/header'
 
 const chromeTheme = isChrome ? chrome.devtools.panels.themeName : undefined
 
@@ -21,7 +30,9 @@ export default defineComponent({
     AppHeader,
     AppConnecting,
     AppDisconnected,
-    ErrorOverlay
+    ErrorOverlay,
+    SplitPane,
+    AppSelectPane,
   },
 
   setup () {
@@ -63,18 +74,20 @@ export default defineComponent({
 
     return {
       isConnected,
-      isInitializing
+      isInitializing,
+      showAppsSelector,
     }
-  }
+  },
 })
 </script>
 
 <template>
   <div
-    class="app w-full h-full flex flex-col relative"
+    class="app w-full h-full flex flex-col relative outline-none"
     :class="{
       'disconnected pointer-events-none': !isInitializing && !isConnected
     }"
+    tabindex="0"
   >
     <AppConnecting
       v-if="isInitializing"
@@ -89,7 +102,24 @@ export default defineComponent({
     <template v-else>
       <AppHeader class="flex-none relative z-10 border-b border-gray-200 dark:border-gray-800" />
 
-      <router-view class="flex-1 overflow-auto" />
+      <SplitPane
+        save-id="app-select-pane"
+        :default-split="12"
+        :min="5"
+        :max="40"
+        collapsable-left
+        class="flex-1 overflow-hidden"
+        @left-collapsed="showAppsSelector = $event"
+      >
+        <template #left>
+          <AppSelectPane
+            class="h-full"
+          />
+        </template>
+        <template #right>
+          <router-view class="h-full overflow-auto" />
+        </template>
+      </SplitPane>
     </template>
 
     <portal-target name="root" />

@@ -1,18 +1,18 @@
 
 <script lang="ts">
-import { defineComponent } from '@vue/composition-api'
+import { defineComponent } from 'vue'
 
 export default defineComponent({
   inject: [
-    'currentSettingsVersion'
+    'currentSettingsVersion',
   ],
 
   props: {
     version: {
       type: Number,
-      required: true
-    }
-  }
+      required: true,
+    },
+  },
 })
 </script>
 

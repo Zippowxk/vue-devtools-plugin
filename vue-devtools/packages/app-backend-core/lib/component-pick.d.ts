@@ -1,8 +1,9 @@
-import { BackendContext } from '@vue-devtools/app-backend-api';
+import { BackendContext, DevtoolsBackend } from '@vue-devtools/app-backend-api';
 import { ComponentInstance } from '@vue/devtools-api';
 export default class ComponentPicker {
     ctx: BackendContext;
     selectedInstance: ComponentInstance;
+    selectedBackend: DevtoolsBackend;
     constructor(ctx: BackendContext);
     /**
      * Adds event listeners for mouseover and mouseup
@@ -16,6 +17,7 @@ export default class ComponentPicker {
      * Highlights a component on element mouse over
      */
     elementMouseOver(e: MouseEvent): Promise<void>;
+    selectElementComponent(el: any): Promise<void>;
     /**
      * Selects an instance in the component view
      */

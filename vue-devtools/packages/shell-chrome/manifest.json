@@ -1,13 +1,13 @@
 {
   "name": "Vue.js devtools",
-  "version": "6.0.0.15",
-  "version_name": "6.0.0 beta 15",
-  "description": "Chrome and Firefox DevTools extension for debugging Vue.js applications.",
+  "version": "6.5.0",
+  "version_name": "6.5.0",
+  "description": "Browser DevTools extension for debugging Vue.js applications.",
   "manifest_version": 2,
   "icons": {
-    "16": "icons/16-beta.png",
-    "48": "icons/48-beta.png",
-    "128": "icons/128-beta.png"
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
   },
   "browser_action": {
     "default_icon": {
@@ -28,11 +28,10 @@
     "scripts": [
       "build/background.js"
     ],
-    "persistent": false
+    "persistent": true
   },
   "permissions": [
     "<all_urls>",
-    "contextMenus",
     "storage"
   ],
   "content_scripts": [
@@ -55,5 +54,5 @@
       "run_at": "document_idle"
     }
   ],
-  "content_security_policy": "script-src 'self' https://cdn.headwayapp.co; object-src 'self'"
+  "content_security_policy": "script-src 'self'; object-src 'self'"
 }

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.showScreenshot = void 0;
+const shared_utils_1 = require("@vue-devtools/shared-utils");
 const queue_1 = require("./util/queue");
 const timeline_builtins_1 = require("./timeline-builtins");
 let overlay;
@@ -8,25 +9,26 @@ let image;
 let container;
 const jobQueue = new queue_1.JobQueue();
 async function showScreenshot(screenshot, ctx) {
-    await jobQueue.queue(async () => {
+    await jobQueue.queue('showScreenshot', async () => {
         if (screenshot) {
             if (!container) {
                 createElements();
             }
             image.src = screenshot.image;
+            image.style.visibility = screenshot.image ? 'visible' : 'hidden';
             clearContent();
             const events = screenshot.events.map(id => ctx.timelineEventMap.get(id)).filter(Boolean).map(eventData => ({
                 layer: timeline_builtins_1.builtinLayers.concat(ctx.timelineLayers).find(layer => layer.id === eventData.layerId),
                 event: {
                     ...eventData.event,
                     layerId: eventData.layerId,
-                    renderMeta: {}
-                }
+                    renderMeta: {},
+                },
             }));
             const renderContext = {
                 screenshot,
                 events: events.map(({ event }) => event),
-                index: 0
+                index: 0,
             };
             for (let i = 0; i < events.length; i++) {
                 const { layer, event } = events[i];
@@ -44,7 +46,9 @@ async function showScreenshot(screenshot, ctx) {
                         }
                     }
                     catch (e) {
-                        console.error(e);
+                        if (shared_utils_1.SharedData.debugInfo) {
+                            console.error(e);
+                        }
                     }
                 }
             }

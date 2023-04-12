@@ -11483,6 +11483,7 @@ function init (params) {
       })
 
       initRetryCount = 0
+      debugger
       initRetryInterval = setInterval(() => {
         if (false) {}
         bridge.send('shared-data:master-init-waiting')

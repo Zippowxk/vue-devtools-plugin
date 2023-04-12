@@ -11,31 +11,31 @@ module.exports = createConfig({
     hook: require.resolve('@vue-devtools/shell-host/src/hook.js'),
     target: './src/main.js',
     'iframe-app': './src/iframe-app.js',
-    inject: '/src/inject.js',
+    // inject: '/src/inject.js',
   },
   output: {
     path: path.join(__dirname, '/build'),
     publicPath: '/target/',
-    filename: '[name].js'
+    filename: '[name].js',
   },
   resolve: {
     alias: {
-      vue: require.resolve('vue/dist/vue.esm-bundler.js')
+      vue$: require.resolve('vue/dist/vue.esm-bundler.js'),
     },
-    symlinks: false
+    symlinks: false,
   },
   module: {
     rules: [
       {
         test: /\.vue$/,
         loader: vueLoaderPath,
-        options: {}
-      }
-    ]
+        options: {},
+      },
+    ],
   },
   devServer: {
     port: 8090,
-    onBeforeSetupMiddleware (app) {
+    onBeforeSetupMiddleware ({ app }) {
       app.use('/__open-in-editor', openInEditor())
     },
     proxy: {
@@ -45,10 +45,10 @@ module.exports = createConfig({
           if (req.url.startsWith('/target')) {
             return req.url
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 })
 
 module.exports.plugins[0] = new VueLoaderPlugin()

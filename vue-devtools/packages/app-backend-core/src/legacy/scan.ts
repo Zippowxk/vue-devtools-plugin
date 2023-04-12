@@ -1,7 +1,7 @@
 import { isBrowser, target } from '@vue-devtools/shared-utils'
+import { getPageConfig } from '../page-config'
 
 const rootInstances = []
-let rootUID = 0
 
 /**
  * Scan the page for root level Vue instances.
@@ -29,11 +29,6 @@ export function scan () {
         baseVue = baseVue.super
       }
       if (baseVue.config && baseVue.config.devtools) {
-        // give a unique id to root instance so we can
-        // 'namespace' its children
-        if (typeof instance.__VUE_DEVTOOLS_ROOT_UID__ === 'undefined') {
-          instance.__VUE_DEVTOOLS_ROOT_UID__ = ++rootUID
-        }
         rootInstances.push(instance)
       }
 
@@ -62,6 +57,17 @@ export function scan () {
     for (const iframe of iframes) {
       try {
         walkDocument(iframe.contentDocument)
+      } catch (e) {
+        // Ignore
+      }
+    }
+
+    // Scan for Vue instances in the customTarget elements
+    const { customVue2ScanSelector } = getPageConfig()
+    const customTargets = customVue2ScanSelector ? document.querySelectorAll(customVue2ScanSelector) : []
+    for (const customTarget of customTargets) {
+      try {
+        walkDocument(customTarget)
       } catch (e) {
         // Ignore
       }

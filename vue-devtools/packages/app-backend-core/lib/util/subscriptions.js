@@ -11,22 +11,29 @@ function getSubs(type) {
     return subs;
 }
 function subscribe(type, payload) {
-    const rawPayload = JSON.stringify(payload);
+    const rawPayload = getRawPayload(payload);
     getSubs(type).push({
         payload,
-        rawPayload
+        rawPayload,
     });
 }
 exports.subscribe = subscribe;
 function unsubscribe(type, payload) {
-    const rawPayload = JSON.stringify(payload);
+    const rawPayload = getRawPayload(payload);
     const subs = getSubs(type);
-    const index = subs.findIndex(sub => sub.rawPayload === rawPayload);
-    if (index !== -1) {
+    let index;
+    while ((index = subs.findIndex(sub => sub.rawPayload === rawPayload)) !== -1) {
         subs.splice(index, 1);
     }
 }
 exports.unsubscribe = unsubscribe;
+function getRawPayload(payload) {
+    const data = Object.keys(payload).sort().reduce((acc, key) => {
+        acc[key] = payload[key];
+        return acc;
+    }, {});
+    return JSON.stringify(data);
+}
 function isSubscribed(type, predicate = () => true) {
     return getSubs(type).some(predicate);
 }

@@ -13,11 +13,14 @@ import Ghost from './Ghost.vue'
 import Other from './Other.vue'
 import SetupRender from './SetupRender.js'
 import Form from './Form.vue'
+import Functional from './Functional.vue'
 import Heavy from './Heavy.vue'
 import Mixins from './Mixins.vue'
 import Animation from './Animation.vue'
 import SetupScript from './SetupScript.vue'
 import SetupDataLike from './SetupDataLike.vue'
+import SetupTSScriptProps from './SetupTSScriptProps.vue'
+import DomOrder from './DomOrder.vue'
 
 import { h, createApp } from 'vue'
 import SimplePlugin from './devtools-plugin/simple'
@@ -40,20 +43,24 @@ export default {
     Other,
     SetupRender,
     Form,
+    Functional,
     Heavy,
     Mixins,
     Animation,
     SetupScript,
     SetupDataLike,
+    SetupTSScriptProps,
+    DomOrder,
     inline: {
-      render: () => h('h3', 'Inline component definition')
-    }
+      render: () => h('h3', 'Inline component definition'),
+    },
   },
 
   data () {
     return {
       count: 0,
-      text: 'Meow'
+      text: 'Meow',
+      time: 0,
     }
   },
 
@@ -62,8 +69,27 @@ export default {
       const app = createApp(Child)
       app.use(SimplePlugin)
       app.mount('#nested-app')
-    }
-  }
+    },
+
+    startTimer () {
+      this.stopTimer()
+      this.timer = setInterval(() => {
+        this.time++
+      }, 1)
+    },
+
+    stopTimer () {
+      clearInterval(this.timer)
+    },
+
+    onFoo (...args) {
+      console.log('on foo', ...args)
+    },
+
+    onBar (...args) {
+      console.log('on bar', ...args)
+    },
+  },
 }
 </script>
 
@@ -79,6 +105,16 @@ export default {
   </div>
 
   <div>
+    <button @click="startTimer">
+      Start timer
+    </button>
+    <button @click="stopTimer">
+      Stop timer
+    </button>
+    <span>{{ time }}</span>
+  </div>
+
+  <div>
     <Heavy
       v-for="i in count"
       :key="i"
@@ -87,8 +123,11 @@ export default {
 
   <Child question="Life" />
   <NestedMore />
-  <NativeTypes />
-  <EventEmit />
+  <NativeTypes ref="nativeTypes" />
+  <EventEmit
+    @foo="onFoo"
+    @bar="onBar"
+  />
   <EventNesting />
   <AsyncComponent />
   <SuspenseExample />
@@ -100,15 +139,21 @@ export default {
   <Other />
   <SetupRender />
   <Form />
+  <Functional msg="I am functional" />
   <Mixins />
   <SetupScript />
   <SetupDataLike />
+  <SetupTSScriptProps my-prop="42" />
+  <DomOrder />
   <inline />
   <global />
 
   <h2>Store</h2>
   <div>
     {{ $store.getters.answer }}
+    <button @click="$store.commit('increment')">
+      +1
+    </button>
     {{ $store.getters.twoFoo }}
   </div>
 

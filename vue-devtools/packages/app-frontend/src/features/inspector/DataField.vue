@@ -1,12 +1,12 @@
 <script lang="ts">
-import { defineComponent } from '@vue/composition-api'
-import { BridgeEvents } from '@vue-devtools/shared-utils'
+import { defineComponent } from 'vue'
 import {
+  BridgeEvents,
   isPlainObject,
   sortByKey,
   openInEditor,
-  copyToClipboard
-} from '@utils/util'
+  copyToClipboard,
+} from '@vue-devtools/shared-utils'
 import DataFieldEdit from '@front/mixins/data-field-edit'
 import { formattedValue, valueType, valueDetails } from '@front/util/format'
 import { getBridge } from '../bridge'
@@ -25,38 +25,37 @@ export default defineComponent({
   name: 'DataField',
 
   mixins: [
-    DataFieldEdit
+    DataFieldEdit,
   ],
 
   props: {
     field: {
       type: Object,
-      required: true
+      required: true,
     },
     depth: {
       type: Number,
-      required: true
+      required: true,
     },
     path: {
       type: String,
-      required: true
+      required: true,
     },
     forceCollapse: {
       type: String,
-      default: null
+      default: null,
     },
     isStateField: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
 
   data () {
-    const value = this.field.value && this.field.value._custom ? this.field.value._custom.value : this.field.value
     return {
       contextMenuOpen: false,
       limit: 20,
-      expanded: this.depth === 0 && this.field.key !== '$route' && (subFieldCount(value) < 12)
+      expanded: false,
     }
   },
 
@@ -69,11 +68,15 @@ export default defineComponent({
       return valueType(this.field.value)
     },
 
+    interpretedValueType (): string {
+      return valueType(this.field.value, false)
+    },
+
     valueDetails (): string {
       return valueDetails(this.field.value)
     },
 
-    rawValueType (): string {
+    nativeValueType (): string {
       return typeof this.field.value
     },
 
@@ -97,14 +100,15 @@ export default defineComponent({
 
     formattedValue (): string {
       const value = this.field.value
-      if (this.field.objectType === 'Reactive') {
+      const objectType = value?._custom?.objectType || this.field.objectType
+      if (objectType === 'Reactive') {
         return 'Reactive'
       } else if (this.fieldOptions.abstract) {
         return ''
       } else {
-        let result = formattedValue(value)
-        if (this.field.objectType) {
-          result += ` <span class="text-gray-500">(${this.field.objectType})</span>`
+        let result = `<span class="value-formatted-ouput">${formattedValue(value)}</span>`
+        if (objectType) {
+          result += ` <span class="text-gray-500">(${objectType})</span>`
         }
         return result
       }
@@ -134,13 +138,13 @@ export default defineComponent({
         return value.slice(0, this.limit).map((item, i) => ({
           key: i,
           value: item,
-          ...inherit
+          ...inherit,
         }))
       } else if (typeof value === 'object') {
         value = Object.keys(value).map(key => ({
           key,
           value: value[key],
-          ...inherit
+          ...inherit,
         }))
         if (this.valueType !== 'custom') {
           value = sortByKey(value)
@@ -162,7 +166,7 @@ export default defineComponent({
       } else if (type === 'custom') {
         return this.field.value._custom.tooltip
       } else if (type.indexOf('native ') === 0) {
-        return type.substr('native '.length)
+        return type.substring('native '.length)
       } else {
         return null
       }
@@ -190,7 +194,7 @@ export default defineComponent({
     },
 
     valueClass (): string[] {
-      const cssClass = [this.valueType, `raw-${this.rawValueType}`]
+      const cssClass = [this.valueType, `raw-${this.nativeValueType}`]
       if (this.valueType === 'custom') {
         const value = this.field.value
         value._custom.type && cssClass.push(`type-${value._custom.type}`)
@@ -209,7 +213,7 @@ export default defineComponent({
 
     customActions (): { icon: string, tooltip?: string }[] {
       return this.field.value?._custom?.actions ?? []
-    }
+    },
   },
 
   watch: {
@@ -221,8 +225,13 @@ export default defineComponent({
           this.expanded = false
         }
       },
-      immediate: true
-    }
+      immediate: true,
+    },
+  },
+
+  created () {
+    const value = this.field.value && this.field.value._custom ? this.field.value._custom.value : this.field.value
+    this.expanded = this.depth === 0 && this.field.key !== '$route' && (subFieldCount(value) < 12)
   },
 
   methods: {
@@ -289,17 +298,19 @@ export default defineComponent({
       getBridge().send(BridgeEvents.TO_BACK_LOG, {
         level,
         value: this.field.value,
-        revive: true
+        revive: true,
       })
     },
 
     executeCustomAction (index: number) {
       getBridge().send(BridgeEvents.TO_BACK_CUSTOM_STATE_ACTION, {
         value: this.field.value,
-        actionIndex: index
+        actionIndex: index,
       })
-    }
-  }
+    },
+  },
+
+  renderError: null,
 })
 </script>
 
@@ -342,7 +353,7 @@ export default defineComponent({
           html: true
         }"
         :class="{ abstract: fieldOptions.abstract }"
-        class="key"
+        class="key text-purple-700 dark:text-purple-300"
       >{{ displayedKey }}</span><span
         v-if="!fieldOptions.abstract"
         class="colon"
@@ -657,9 +668,6 @@ export default defineComponent({
     align-items center
 
 .key
-  color #881391
-  .vue-ui-dark-mode &
-    color: $lightPink
   &.abstract
     color $blueishGrey
     .vue-ui-dark-mode &
@@ -678,8 +686,9 @@ export default defineComponent({
     color #999
   &.literal
     color $vividBlue
-  &.raw-boolean
+  &.raw-boolean >>> .value-formatted-ouput
     width 36px
+    display inline-block
   &.native.Error
     background $red
     color $white !important

@@ -1,44 +1,50 @@
-import { AppRecord, BackendContext } from '@vue-devtools/app-backend-api'
-import { classify } from '@vue-devtools/shared-utils'
-import { ComponentTreeNode } from '@vue/devtools-api'
-import { getInstanceOrVnodeRect } from './el'
+import { AppRecord, BackendContext, DevtoolsApi } from '@vue-devtools/app-backend-api'
+import { classify, kebabize } from '@vue-devtools/shared-utils'
+import { ComponentTreeNode, ComponentInstance } from '@vue/devtools-api'
+import { getRootElementsFromComponentInstance } from './el'
+import { applyPerfHooks } from './perf.js'
+import { applyTrackingUpdateHook } from './update-tracking.js'
 import { getInstanceName, getRenderKey, getUniqueId, isBeingDestroyed } from './util'
 
 export let instanceMap: Map<any, any>
 export let functionalVnodeMap: Map<any, any>
 
 let appRecord: AppRecord
+let api: DevtoolsApi
 
 const consoleBoundInstances = Array(5)
 
 let filter = ''
+let recursively = false
 const functionalIds = new Map()
 
 // Dedupe instances
 // Some instances may be both on a component and on a child abstract/functional component
 const captureIds = new Map()
 
-export function walkTree (instance, pFilter: string, ctx: BackendContext): ComponentTreeNode[] {
-  initCtx(ctx)
+export async function walkTree (instance, pFilter: string, pRecursively: boolean, api: DevtoolsApi, ctx: BackendContext): Promise<ComponentTreeNode[]> {
+  initCtx(api, ctx)
   filter = pFilter
+  recursively = pRecursively
   functionalIds.clear()
   captureIds.clear()
-  const result = findQualifiedChildren(instance)
-  if (Array.isArray(result)) {
-    return result
-  }
-  return [result]
+  const result: ComponentTreeNode[] = flatten(await findQualifiedChildren(instance))
+  return result
 }
 
-export function getComponentParents (instance, ctx: BackendContext) {
-  initCtx(ctx)
+export function getComponentParents (instance, api: DevtoolsApi, ctx: BackendContext) {
+  initCtx(api, ctx)
   const captureIds = new Map()
 
   const captureId = vm => {
-    const id = getUniqueId(vm)
+    const id = vm.__VUE_DEVTOOLS_UID__ = getUniqueId(vm)
     if (captureIds.has(id)) return
     captureIds.set(id, undefined)
-    mark(vm)
+    if (vm.__VUE_DEVTOOLS_FUNCTIONAL_LEGACY__) {
+      markFunctional(id, vm.vnode)
+    } else {
+      mark(vm)
+    }
   }
 
   const parents = []
@@ -51,8 +57,12 @@ export function getComponentParents (instance, ctx: BackendContext) {
   return parents
 }
 
-function initCtx (ctx: BackendContext) {
+function initCtx (_api: DevtoolsApi, ctx: BackendContext) {
   appRecord = ctx.currentAppRecord
+  api = _api
+  if (!appRecord.meta) {
+    appRecord.meta = {}
+  }
   if (!appRecord.meta.instanceMap) {
     appRecord.meta.instanceMap = new Map()
   }
@@ -69,12 +79,12 @@ function initCtx (ctx: BackendContext) {
  * traversal - e.g. if an instance is not matched, we will
  * recursively go deeper until a qualified child is found.
  */
-function findQualifiedChildrenFromList (instances: any[]): any[] {
+function findQualifiedChildrenFromList (instances: any[]): Promise<ComponentTreeNode[]> {
   instances = instances
     .filter(child => !isBeingDestroyed(child))
-  return !filter
+  return Promise.all(!filter
     ? instances.map(capture)
-    : Array.prototype.concat.apply([], instances.map(findQualifiedChildren))
+    : Array.prototype.concat.apply([], instances.map(findQualifiedChildren)))
 }
 
 /**
@@ -82,30 +92,30 @@ function findQualifiedChildrenFromList (instances: any[]): any[] {
  * If the instance itself is qualified, just return itself.
  * This is ok because [].concat works in both cases.
  */
-function findQualifiedChildren (instance) {
+async function findQualifiedChildren (instance): Promise<ComponentTreeNode[]> {
   if (isQualified(instance)) {
-    return capture(instance)
+    return [await capture(instance)]
   } else {
-    return findQualifiedChildrenFromList(instance.$children).concat(
-      instance._vnode && instance._vnode.children
-        // Find functional components in recursively in non-functional vnodes.
-        ? flatten(instance._vnode.children.filter(child => !child.componentInstance).map(captureChild))
-          // Filter qualified children.
-          .filter(instance => isQualified(instance))
-        : []
-    )
+    let children = await findQualifiedChildrenFromList(instance.$children)
+
+    // Find functional components in recursively in non-functional vnodes.
+    if (instance._vnode && instance._vnode.children) {
+      const list = await Promise.all(flatten<Promise<ComponentTreeNode>>((instance._vnode.children as any[]).filter(child => !child.componentInstance).map(captureChild)))
+      // Filter qualified children.
+      const additionalChildren = list.filter(instance => isQualified(instance))
+      children = children.concat(additionalChildren)
+    }
+
+    return children
   }
 }
 
 /**
  * Get children from a component instance.
  */
-function getInternalInstanceChildren (instance) {
+function getInternalInstanceChildren (instance): any[] {
   if (instance.$children) {
     return instance.$children
-  }
-  if (Array.isArray(instance.subTree.children)) {
-    return instance.subTree.children.filter(vnode => !!vnode.component).map(vnode => vnode.component)
   }
   return []
 }
@@ -114,33 +124,46 @@ function getInternalInstanceChildren (instance) {
  * Check if an instance is qualified.
  */
 function isQualified (instance): boolean {
-  const name = classify(getInstanceName(instance)).toLowerCase()
-  return name.indexOf(filter) > -1
+  const name = getInstanceName(instance)
+  return classify(name).toLowerCase().indexOf(filter) > -1 ||
+    kebabize(name).toLowerCase().indexOf(filter) > -1
 }
 
-function flatten (items) {
-  return items.reduce((acc, item) => {
-    if (item instanceof Array) acc.push(...flatten(item))
-    else if (item) acc.push(item)
+function flatten<T> (items: any[]): T[] {
+  const r = items.reduce((acc, item) => {
+    if (Array.isArray(item)) {
+      let children = []
+      for (const i of item) {
+        if (Array.isArray(i)) {
+          children = children.concat(flatten(i))
+        } else {
+          children.push(i)
+        }
+      }
+      acc.push(...children)
+    } else if (item) {
+      acc.push(item)
+    }
 
     return acc
-  }, [])
+  }, [] as T[])
+  return r
 }
 
-function captureChild (child) {
+function captureChild (child): Promise<ComponentTreeNode[] | ComponentTreeNode> {
   if (child.fnContext && !child.componentInstance) {
     return capture(child)
   } else if (child.componentInstance) {
     if (!isBeingDestroyed(child.componentInstance)) return capture(child.componentInstance)
   } else if (child.children) {
-    return flatten(child.children.map(captureChild))
+    return Promise.all(flatten<Promise<ComponentTreeNode>>(child.children.map(captureChild)))
   }
 }
 
 /**
  * Capture the meta information of an instance. (recursive)
  */
-function capture (instance, index?: number, list?: any[]): ComponentTreeNode {
+async function capture (instance, index?: number, list?: any[]): Promise<ComponentTreeNode> {
   if (instance.__VUE_DEVTOOLS_FUNCTIONAL_LEGACY__) {
     instance = instance.vnode
   }
@@ -164,39 +187,49 @@ function capture (instance, index?: number, list?: any[]): ComponentTreeNode {
     const functionalId = contextUid + ':functional:' + id
     markFunctional(functionalId, instance)
 
-    const children = (instance.children
+    const childrenPromise = (instance.children
       ? instance.children.map(
         child => child.fnContext
           ? captureChild(child)
           : child.componentInstance
             ? capture(child.componentInstance)
-            : undefined
+            : undefined,
       )
       // router-view has both fnContext and componentInstance on vnode.
-      : instance.componentInstance ? [capture(instance.componentInstance)] : []).filter(Boolean)
+      : instance.componentInstance ? [capture(instance.componentInstance)] : [])
 
-    return {
+    // await all childrenCapture to-be resolved
+    const children = (await Promise.all(childrenPromise)).filter(Boolean) as ComponentTreeNode[]
+
+    const treeNode = {
       uid: functionalId,
       id: functionalId,
       tags: [
         {
           label: 'functional',
           textColor: 0x555555,
-          backgroundColor: 0xeeeeee
-        }
+          backgroundColor: 0xeeeeee,
+        },
       ],
       name: getInstanceName(instance),
       renderKey: getRenderKey(instance.key),
       children,
       hasChildren: !!children.length,
       inactive: false,
-      isFragment: false // TODO: Check what is it for.
+      isFragment: false, // TODO: Check what is it for.
+      autoOpen: recursively,
     }
+    return api.visitComponentTree(
+      instance,
+      treeNode,
+      filter,
+      appRecord?.options?.app,
+    )
   }
   // instance._uid is not reliable in devtools as there
   // may be 2 roots with same _uid which causes unexpected
   // behaviour
-  instance.__VUE_DEVTOOLS_UID__ = getUniqueId(instance)
+  instance.__VUE_DEVTOOLS_UID__ = getUniqueId(instance, appRecord)
 
   // Dedupe
   if (captureIds.has(instance.__VUE_DEVTOOLS_UID__)) {
@@ -208,10 +241,9 @@ function capture (instance, index?: number, list?: any[]): ComponentTreeNode {
   mark(instance)
   const name = getInstanceName(instance)
 
-  const children = getInternalInstanceChildren(instance)
+  const children = (await Promise.all((await getInternalInstanceChildren(instance))
     .filter(child => !isBeingDestroyed(child))
-    .map(capture)
-    .filter(Boolean)
+    .map(capture))).filter(Boolean)
 
   const ret: ComponentTreeNode = {
     uid: instance._uid,
@@ -222,24 +254,34 @@ function capture (instance, index?: number, list?: any[]): ComponentTreeNode {
     isFragment: !!instance._isFragment,
     children,
     hasChildren: !!children.length,
+    autoOpen: recursively,
     tags: [],
-    meta: {}
+    meta: {},
   }
 
   if (instance._vnode && instance._vnode.children) {
+    const vnodeChildren = await Promise.all(flatten(instance._vnode.children.map(captureChild)))
     ret.children = ret.children.concat(
-      flatten(instance._vnode.children.map(captureChild))
-        .filter(Boolean)
+      flatten<any>(vnodeChildren).filter(Boolean),
     )
     ret.hasChildren = !!ret.children.length
   }
 
-  // record screen position to ensure correct ordering
-  if ((!list || list.length > 1) && !instance._inactive) {
-    const rect = getInstanceOrVnodeRect(instance)
-    ret.positionTop = rect ? rect.top : Infinity
+  // ensure correct ordering
+  const rootElements = getRootElementsFromComponentInstance(instance)
+  const firstElement = rootElements[0]
+  if (firstElement?.parentElement) {
+    const parentInstance = instance.$parent
+    const parentRootElements = parentInstance ? getRootElementsFromComponentInstance(parentInstance) : []
+    let el = firstElement
+    const indexList = []
+    do {
+      indexList.push(Array.from(el.parentElement.childNodes).indexOf(el))
+      el = el.parentElement
+    } while (el.parentElement && parentRootElements.length && !parentRootElements.includes(el))
+    ret.domOrder = indexList.reverse()
   } else {
-    ret.positionTop = Infinity
+    ret.domOrder = [-1]
   }
 
   // check if instance is available in console
@@ -247,7 +289,7 @@ function capture (instance, index?: number, list?: any[]): ComponentTreeNode {
   ret.consoleId = consoleId > -1 ? '$vm' + consoleId : null
 
   // check router view
-  const isRouterView2 = instance.$vnode && instance.$vnode.data.routerView
+  const isRouterView2 = instance.$vnode?.data?.routerView
   if (instance._routerView || isRouterView2) {
     ret.isRouterView = true
     if (!instance._inactive && instance.$route) {
@@ -263,10 +305,15 @@ function capture (instance, index?: number, list?: any[]): ComponentTreeNode {
     ret.tags.push({
       label: `router-view${ret.meta.matchedRouteSegment ? `: ${ret.meta.matchedRouteSegment}` : ''}`,
       textColor: 0x000000,
-      backgroundColor: 0xff8344
+      backgroundColor: 0xff8344,
     })
   }
-  return ret
+  return api.visitComponentTree(
+    instance,
+    ret,
+    filter,
+    appRecord?.options?.app,
+  )
 }
 
 /**
@@ -283,6 +330,8 @@ function mark (instance) {
     instance.$on('hook:beforeDestroy', function () {
       instanceMap.delete(refId)
     })
+    applyPerfHooks(api, instance, appRecord.options.app)
+    applyTrackingUpdateHook(api, instance)
   }
 }
 
@@ -300,6 +349,6 @@ function markFunctional (id, vnode) {
   appRecord.instanceMap.set(id, {
     __VUE_DEVTOOLS_UID__: id,
     __VUE_DEVTOOLS_FUNCTIONAL_LEGACY__: true,
-    vnode
-  })
+    vnode,
+  } as unknown as ComponentInstance)
 }

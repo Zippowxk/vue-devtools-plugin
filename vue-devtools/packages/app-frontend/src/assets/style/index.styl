@@ -7,13 +7,17 @@
 @import 'imports'
 @import 'transitions'
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500&display=swap')
-
 @font-face
   font-family 'Roboto'
   font-style normal
   font-weight 400
   src local('Roboto'), local('Roboto-Regular'), url(../Roboto-Regular.woff2) format('woff2')
+
+@font-face
+  font-family 'Roboto Mono'
+  font-style normal
+  font-weight 400
+  src local('Roboto Mono'), local('Roboto-Mono'), url(../Roboto-Mono.ttf) format('truetype')
 
 html, body
   margin 0
@@ -71,7 +75,7 @@ button:focus
 
 // Popover
 
-$arrow-color = $vue-ui-color-dark
+$arrow-color = rgba(100, 100, 100, 0.5)
 
 .arrow
   display inline-block
@@ -134,7 +138,6 @@ $arrow-color = $vue-ui-color-dark
 
 .vue-ui-dark-mode .v-popper__popper.v-popper--theme-tooltip .vue-ui-icon svg
   fill #666
-
 
 .v-popper__popper.v-popper--theme-dropdown .v-popper__inner
   max-height calc(100vh - 32px - 8px - 4px)

@@ -1,6 +1,6 @@
-import { ComponentTreeNode, InspectedComponentData, ComponentInstance, ComponentDevtoolsOptions } from './component'
-import { App } from './app'
-import { CustomInspectorNode, CustomInspectorState, TimelineEvent } from './api'
+import type { ComponentTreeNode, InspectedComponentData, ComponentInstance, ComponentDevtoolsOptions } from './component.js'
+import type { App } from './app.js'
+import type { CustomInspectorNode, CustomInspectorState, TimelineEvent } from './api.js'
 
 export const enum Hooks {
   TRANSFORM_CALL = 'transformCall',
@@ -23,7 +23,8 @@ export const enum Hooks {
   TIMELINE_CLEARED = 'timelineCleared',
   GET_INSPECTOR_TREE = 'getInspectorTree',
   GET_INSPECTOR_STATE = 'getInspectorState',
-  EDIT_INSPECTOR_STATE = 'editInspectorState'
+  EDIT_INSPECTOR_STATE = 'editInspectorState',
+  SET_PLUGIN_SETTINGS = 'setPluginSettings',
 }
 
 export interface ComponentBounds {
@@ -55,6 +56,7 @@ export type HookPayloads = {
     componentTreeData: ComponentTreeNode[]
     maxDepth: number
     filter: string
+    recursively: boolean
   }
   [Hooks.VISIT_COMPONENT_TREE]: {
     app: App
@@ -97,7 +99,7 @@ export type HookPayloads = {
     path: string[]
     type: string
     state: EditStatePayload
-    set: (object: any, path: string | (string[]), value: any, cb?: (object: any, field: string, value: any) => void) => void
+    set: (object: any, path?: string | (string[]), value?: any, cb?: (object: any, field: string, value: any) => void) => void
   }
   [Hooks.GET_COMPONENT_DEVTOOLS_OPTIONS]: {
     componentInstance: ComponentInstance
@@ -134,7 +136,15 @@ export type HookPayloads = {
     path: string[]
     type: string
     state: EditStatePayload
-    set: (object: any, path: string | (string[]), value: any, cb?: (object: any, field: string, value: any) => void) => void
+    set: (object: any, path?: string | (string[]), value?: any, cb?: (object: any, field: string, value: any) => void) => void
+  }
+  [Hooks.SET_PLUGIN_SETTINGS]: {
+    app: App
+    pluginId: string
+    key: string
+    newValue: any
+    oldValue: any
+    settings: any
   }
 }
 
@@ -172,4 +182,5 @@ export interface Hookable<TContext> {
   getInspectorTree (handler: HookHandler<HookPayloads[Hooks.GET_INSPECTOR_TREE], TContext>)
   getInspectorState (handler: HookHandler<HookPayloads[Hooks.GET_INSPECTOR_STATE], TContext>)
   editInspectorState (handler: HookHandler<HookPayloads[Hooks.EDIT_INSPECTOR_STATE], TContext>)
+  setPluginSettings (handler: HookHandler<HookPayloads[Hooks.SET_PLUGIN_SETTINGS], TContext>)
 }

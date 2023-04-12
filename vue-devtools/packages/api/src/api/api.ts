@@ -1,27 +1,33 @@
-import { ComponentBounds, Hookable } from './hooks'
-import { Context } from './context'
-import { ComponentInstance, ComponentState, StateBase } from './component'
-import { App } from './app'
-import { ID } from './util'
+import type { ComponentBounds, Hookable } from './hooks.js'
+import type { Context } from './context.js'
+import type { ComponentInstance, ComponentState, StateBase } from './component.js'
+import type { App } from './app.js'
+import type { ID } from './util.js'
 
-export interface DevtoolsPluginApi {
+export interface DevtoolsPluginApi<TSettings> {
   on: Hookable<Context>
-  notifyComponentUpdate (instance?: ComponentInstance)
-  addTimelineLayer (options: TimelineLayerOptions)
-  addTimelineEvent (options: TimelineEventOptions)
-  addInspector (options: CustomInspectorOptions)
-  sendInspectorTree (inspectorId: string)
-  sendInspectorState (inspectorId: string)
-  selectInspectorNode (inspectorId: string, nodeId: string)
+  notifyComponentUpdate (instance?: ComponentInstance): void
+  addTimelineLayer (options: TimelineLayerOptions): void
+  addTimelineEvent (options: TimelineEventOptions): void
+  addInspector (options: CustomInspectorOptions): void
+  sendInspectorTree (inspectorId: string): void
+  sendInspectorState (inspectorId: string): void
+  selectInspectorNode (inspectorId: string, nodeId: string): void
   getComponentBounds (instance: ComponentInstance): Promise<ComponentBounds>
   getComponentName (instance: ComponentInstance): Promise<string>
   getComponentInstances (app: App): Promise<ComponentInstance[]>
-  highlightElement (instance: ComponentInstance)
-  unhighlightElement ()
+  highlightElement (instance: ComponentInstance): void
+  unhighlightElement (): void
+  getSettings (pluginId?: string): TSettings
+  now (): number
+  /**
+   * @private Not implemented yet
+   */
+  setSettings (values: TSettings): void
 }
 
 export interface AppRecord {
-  id: number
+  id: string
   name: string
   instanceMap: Map<string, ComponentInstance>
   rootInstance: ComponentInstance
@@ -70,6 +76,14 @@ export interface TimelineEvent<TData = any, TMeta = any> {
   subtitle?: string
 }
 
+export interface TimelineMarkerOptions {
+  id: string
+  time: number
+  color: number
+  label: string
+  all?: boolean
+}
+
 export interface CustomInspectorOptions {
   id: string
   label: string
@@ -81,6 +95,11 @@ export interface CustomInspectorOptions {
     icon: string
     tooltip?: string
     action: () => void | Promise<void>
+  }[]
+  nodeActions?: {
+    icon: string
+    tooltip?: string
+    action: (nodeId: string) => void | Promise<void>
   }[]
 }
 

@@ -9,31 +9,38 @@
  * @param {Window|global} target
  */
 export function installHook (target, isIframe = false) {
+  const devtoolsVersion = '6.0'
   let listeners = {}
+
+  function injectIframeHook (iframe) {
+    if ((iframe as any).__vdevtools__injected) return
+    try {
+      (iframe as any).__vdevtools__injected = true
+      const inject = () => {
+        try {
+          (iframe.contentWindow as any).__VUE_DEVTOOLS_IFRAME__ = iframe
+          const script = iframe.contentDocument.createElement('script')
+          script.textContent = ';(' + installHook.toString() + ')(window, true)'
+          iframe.contentDocument.documentElement.appendChild(script)
+          script.parentNode.removeChild(script)
+        } catch (e) {
+          // Ignore
+        }
+      }
+      inject()
+      iframe.addEventListener('load', () => inject())
+    } catch (e) {
+      // Ignore
+    }
+  }
 
   let iframeChecks = 0
   function injectToIframes () {
-    const iframes = document.querySelectorAll<HTMLIFrameElement>('iframe')
+    if (typeof window === 'undefined') return
+
+    const iframes = document.querySelectorAll<HTMLIFrameElement>('iframe:not([data-vue-devtools-ignore])')
     for (const iframe of iframes) {
-      try {
-        if ((iframe as any).__vdevtools__injected) continue
-        (iframe as any).__vdevtools__injected = true
-        const inject = () => {
-          try {
-            (iframe.contentWindow as any).__VUE_DEVTOOLS_IFRAME__ = iframe
-            const script = iframe.contentDocument.createElement('script')
-            script.textContent = ';(' + installHook.toString() + ')(window, true)'
-            iframe.contentDocument.documentElement.appendChild(script)
-            script.parentNode.removeChild(script)
-          } catch (e) {
-            // Ignore
-          }
-        }
-        inject()
-        iframe.addEventListener('load', () => inject())
-      } catch (e) {
-        // Ignore
-      }
+      injectIframeHook(iframe)
     }
   }
   injectToIframes()
@@ -45,7 +52,14 @@ export function installHook (target, isIframe = false) {
     }
   }, 1000)
 
-  if (Object.prototype.hasOwnProperty.call(target, '__VUE_DEVTOOLS_GLOBAL_HOOK__')) return
+  // TODO: 注意这里
+  if (Object.prototype.hasOwnProperty.call(target, '__VUE_DEVTOOLS_GLOBAL_HOOK__')) {
+    if (target.__VUE_DEVTOOLS_GLOBAL_HOOK__.devtoolsVersion !== devtoolsVersion) {
+      console.error(`Another version of Vue Devtools seems to be installed. Please enable only one version at a time.`)
+    }
+    return
+  }
+  // if (Object.prototype.hasOwnProperty.call(target, '__VUE_DEVTOOLS_GLOBAL_HOOK__')) return
 
   let hook
 
@@ -54,19 +68,25 @@ export function installHook (target, isIframe = false) {
       try {
         const hook = (window.parent as any).__VUE_DEVTOOLS_GLOBAL_HOOK__
         if (hook) {
-          cb(hook)
+          return cb(hook)
         } else {
           console.warn('[Vue Devtools] No hook in parent window')
         }
       } catch (e) {
-        console.warn('[Vue Devtools] Failed to send message to parend window', e)
+        console.warn('[Vue Devtools] Failed to send message to parent window', e)
       }
     }
 
     hook = {
+      devtoolsVersion,
       // eslint-disable-next-line accessor-pairs
       set Vue (value) {
         sendToParent(hook => { hook.Vue = value })
+      },
+
+      // eslint-disable-next-line accessor-pairs
+      set enabled (value) {
+        sendToParent(hook => { hook.enabled = value })
       },
 
       on (event, fn) {
@@ -83,12 +103,20 @@ export function installHook (target, isIframe = false) {
 
       emit (event, ...args) {
         sendToParent(hook => hook.emit(event, ...args))
-      }
+      },
+
+      cleanupBuffer (matchArg) {
+        return sendToParent(hook => hook.cleanupBuffer(matchArg)) ?? false
+      },
     }
   } else {
     hook = {
+      devtoolsVersion,
       Vue: null,
+      enabled: undefined,
       _buffer: [],
+      _bufferMap: new Map(),
+      _bufferToRemove: new Map(),
       store: null,
       initialState: null,
       storeModules: null,
@@ -98,13 +126,15 @@ export function installHook (target, isIframe = false) {
       _replayBuffer (event) {
         const buffer = this._buffer
         this._buffer = []
+        this._bufferMap.clear()
+        this._bufferToRemove.clear()
 
         for (let i = 0, l = buffer.length; i < l; i++) {
-          const allArgs = buffer[i]
+          const allArgs = buffer[i].slice(1)
           allArgs[0] === event
             // eslint-disable-next-line prefer-spread
             ? this.emit.apply(this, allArgs)
-            : this._buffer.push(allArgs)
+            : this._buffer.push(buffer[i])
         }
       },
 
@@ -121,7 +151,7 @@ export function installHook (target, isIframe = false) {
       once (event, fn) {
         const on = (...args) => {
           this.off(event, on)
-          fn.apply(this, args)
+          return fn.apply(this, args)
         }
         this.on(event, on)
       },
@@ -154,13 +184,58 @@ export function installHook (target, isIframe = false) {
         if (cbs) {
           cbs = cbs.slice()
           for (let i = 0, l = cbs.length; i < l; i++) {
-            cbs[i].apply(this, args)
+            try {
+              const result = cbs[i].apply(this, args)
+              if (typeof result?.catch === 'function') {
+                result.catch(e => {
+                  console.error(`[Hook] Error in async event handler for ${event} with args:`, args)
+                  console.error(e)
+                })
+              }
+            } catch (e) {
+              console.error(`[Hook] Error in event handler for ${event} with args:`, args)
+              console.error(e)
+            }
           }
         } else {
-          this._buffer.push([event, ...args])
+          const buffered = [Date.now(), event, ...args]
+          this._buffer.push(buffered)
+
+          for (let i = 2; i < args.length; i++) {
+            if (typeof args[i] === 'object' && args[i]) {
+              // Save by component instance  (3rd, 4th or 5th arg)
+              this._bufferMap.set(args[i], buffered)
+              break
+            }
+          }
         }
-      }
+      },
+
+      /**
+       * Remove buffered events with any argument that is equal to the given value.
+       * @param matchArg Given value to match.
+       */
+      cleanupBuffer (matchArg) {
+        const inBuffer = this._bufferMap.has(matchArg)
+        if (inBuffer) {
+          // Mark event for removal
+          this._bufferToRemove.set(this._bufferMap.get(matchArg), true)
+        }
+        return inBuffer
+      },
+
+      _cleanupBuffer () {
+        const now = Date.now()
+        // Clear buffer events that are older than 10 seconds or marked for removal
+        this._buffer = this._buffer.filter(args => !this._bufferToRemove.has(args) && now - args[0] < 10_000)
+        this._bufferToRemove.clear()
+        this._bufferMap.clear()
+      },
     }
+
+    setInterval(() => {
+      hook._cleanupBuffer()
+    }, 10_000)
 
     hook.once('init', Vue => {
       hook.Vue = Vue
@@ -177,7 +252,7 @@ export function installHook (target, isIframe = false) {
       const appRecord = {
         app,
         version,
-        types
+        types,
       }
       hook.apps.push(appRecord)
       hook.emit('app:add', appRecord)
@@ -200,7 +275,10 @@ export function installHook (target, isIframe = false) {
           if (typeof path === 'string') path = [path]
           hook.storeModules.push({ path, module, options })
           origRegister(path, module, options)
-          if (process.env.NODE_ENV !== 'production') console.log('early register module', path, module, options)
+          if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.log('early register module', path, module, options)
+          }
         }
         origUnregister = store.unregisterModule.bind(store)
         store.unregisterModule = (path) => {
@@ -209,7 +287,10 @@ export function installHook (target, isIframe = false) {
           const index = hook.storeModules.findIndex(m => m.path.join('/') === key)
           if (index !== -1) hook.storeModules.splice(index, 1)
           origUnregister(path)
-          if (process.env.NODE_ENV !== 'production') console.log('early unregister module', path)
+          if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.log('early unregister module', path)
+          }
         }
       }
       hook.flushStoreModules = () => {
@@ -226,8 +307,18 @@ export function installHook (target, isIframe = false) {
   Object.defineProperty(target, '__VUE_DEVTOOLS_GLOBAL_HOOK__', {
     get () {
       return hook
-    }
+    },
   })
+
+  // Handle apps initialized before hook injection
+  if (target.__VUE_DEVTOOLS_HOOK_REPLAY__) {
+    try {
+      target.__VUE_DEVTOOLS_HOOK_REPLAY__.forEach(cb => cb(hook))
+      target.__VUE_DEVTOOLS_HOOK_REPLAY__ = []
+    } catch (e) {
+      console.error('[vue-devtools] Error during hook replay', e)
+    }
+  }
 
   // Clone deep utility for cloning initial state of the store
   // Forked from https://github.com/planttheidea/fast-copy
@@ -242,7 +333,7 @@ export function installHook (target, isIframe = false) {
     getOwnPropertyDescriptor,
     getOwnPropertyNames,
     getOwnPropertySymbols,
-    getPrototypeOf
+    getPrototypeOf,
   } = Object
   const { hasOwnProperty, propertyIsEnumerable } = Object.prototype
 
@@ -256,7 +347,7 @@ export function installHook (target, isIframe = false) {
    */
   const SUPPORTS = {
     SYMBOL_PROPERTIES: typeof getOwnPropertySymbols === 'function',
-    WEAKSET: typeof WeakSet === 'function'
+    WEAKSET: typeof WeakSet === 'function',
   }
 
   /**
@@ -274,7 +365,7 @@ export function installHook (target, isIframe = false) {
 
     const object = create({
       add: (value) => object._values.push(value),
-      has: (value) => !!~object._values.indexOf(value)
+      has: (value) => !!~object._values.indexOf(value),
     })
 
     object._values = []
@@ -331,7 +422,7 @@ export function installHook (target, isIframe = false) {
     object,
     realm,
     handleCopy,
-    cache
+    cache,
   ) => {
     const clone = getCleanClone(object, realm)
 
@@ -374,7 +465,7 @@ export function installHook (target, isIframe = false) {
     object,
     realm,
     handleCopy,
-    cache
+    cache,
   ) => {
     const clone = getCleanClone(object, realm)
 
@@ -497,14 +588,14 @@ export function installHook (target, isIframe = false) {
      */
     const handleCopy = (
       object,
-      cache
+      cache,
     ) => {
       if (!object || typeof object !== 'object' || cache.has(object)) {
         return object
       }
 
       // DOM objects
-      if (object instanceof HTMLElement) {
+      if (typeof HTMLElement !== 'undefined' && object instanceof HTMLElement) {
         return object.cloneNode(false)
       }
 
@@ -546,7 +637,7 @@ export function installHook (target, isIframe = false) {
       if (object instanceof realm.RegExp) {
         clone = new Constructor(
           object.source,
-          object.flags || getRegExpFlags(object)
+          object.flags || getRegExpFlags(object),
         )
 
         clone.lastIndex = object.lastIndex

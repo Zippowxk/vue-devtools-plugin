@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCatchedGetters = exports.getCustomStoreDetails = exports.getCustomRouterDetails = exports.isVueInstance = exports.getCustomInstanceDetails = exports.getInstanceMap = exports.backendInjections = void 0;
+exports.getCatchedGetters = exports.getCustomStoreDetails = exports.getCustomRouterDetails = exports.isVueInstance = exports.getCustomObjectDetails = exports.getCustomInstanceDetails = exports.getInstanceMap = exports.backendInjections = void 0;
 exports.backendInjections = {
     instanceMap: new Map(),
     isVueInstance: (() => false),
-    getCustomInstanceDetails: (() => ({}))
+    getCustomInstanceDetails: (() => ({})),
+    getCustomObjectDetails: (() => undefined),
 };
 function getInstanceMap() {
     return exports.backendInjections.instanceMap;
@@ -14,6 +15,10 @@ function getCustomInstanceDetails(instance) {
     return exports.backendInjections.getCustomInstanceDetails(instance);
 }
 exports.getCustomInstanceDetails = getCustomInstanceDetails;
+function getCustomObjectDetails(value, proto) {
+    return exports.backendInjections.getCustomObjectDetails(value, proto);
+}
+exports.getCustomObjectDetails = getCustomObjectDetails;
 function isVueInstance(value) {
     return exports.backendInjections.isVueInstance(value);
 }
@@ -26,12 +31,12 @@ function getCustomRouterDetails(router) {
             display: 'VueRouter',
             value: {
                 options: router.options,
-                currentRoute: router.currentRoute
+                currentRoute: router.currentRoute,
             },
             fields: {
-                abstract: true
-            }
-        }
+                abstract: true,
+            },
+        },
     };
 }
 exports.getCustomRouterDetails = getCustomRouterDetails;
@@ -43,12 +48,12 @@ function getCustomStoreDetails(store) {
             display: 'Store',
             value: {
                 state: store.state,
-                getters: getCatchedGetters(store)
+                getters: getCatchedGetters(store),
             },
             fields: {
-                abstract: true
-            }
-        }
+                abstract: true,
+            },
+        },
     };
 }
 exports.getCustomStoreDetails = getCustomStoreDetails;
@@ -68,7 +73,7 @@ function getCatchedGetters(store) {
                 catch (e) {
                     return e;
                 }
-            }
+            },
         });
     }
     return getters;

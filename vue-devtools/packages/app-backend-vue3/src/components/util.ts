@@ -16,7 +16,7 @@ export function getAppRecord (instance) {
 export function isFragment (instance) {
   const appRecord = getAppRecord(instance)
   if (appRecord) {
-    return appRecord.options.types.Fragment === instance.subTree.type
+    return appRecord.options.types.Fragment === instance.subTree?.type
   }
 }
 
@@ -45,7 +45,7 @@ function saveComponentName (instance, key) {
 }
 
 function getComponentTypeName (options) {
-  const name = options.name || options._componentTag || options.__vdevtools_guessedName
+  const name = options.name || options._componentTag || options.__vdevtools_guessedName || options.__name
   if (name) {
     return name
   }
@@ -60,8 +60,9 @@ function getComponentTypeName (options) {
  * @param {Vue} instance
  */
 export function getUniqueComponentId (instance, ctx: BackendContext) {
-  const instanceId = instance === ctx.currentAppRecord.rootInstance ? 'root' : instance.uid
-  return `${ctx.currentAppRecord.id}:${instanceId}`
+  const appId = instance.appContext.app.__VUE_DEVTOOLS_APP_RECORD_ID__
+  const instanceId = instance === instance.root ? 'root' : instance.uid
+  return `${appId}:${instanceId}`
 }
 
 export function getRenderKey (value): string {

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findRelatedComponent = exports.getInstanceOrVnodeRect = void 0;
+exports.getRootElementsFromComponentInstance = exports.findRelatedComponent = exports.getInstanceOrVnodeRect = void 0;
 const shared_utils_1 = require("@vue-devtools/shared-utils");
 function createRect() {
     const rect = {
@@ -9,7 +9,7 @@ function createRect() {
         left: 0,
         right: 0,
         get width() { return rect.right - rect.left; },
-        get height() { return rect.bottom - rect.top; }
+        get height() { return rect.bottom - rect.top; },
     };
     return rect;
 }
@@ -37,7 +37,7 @@ function getInstanceOrVnodeRect(instance) {
         // TODO: Find position from instance or a vnode (for functional components).
         return;
     }
-    if (!shared_utils_1.inDoc(el)) {
+    if (!(0, shared_utils_1.inDoc)(el)) {
         return;
     }
     if (instance._isFragment) {
@@ -111,4 +111,16 @@ function addIframePosition(bounds, win) {
     }
     return bounds;
 }
+function getRootElementsFromComponentInstance(instance) {
+    if (instance._isFragment) {
+        const list = [];
+        const { _fragmentStart, _fragmentEnd } = instance;
+        util().mapNodeRange(_fragmentStart, _fragmentEnd, node => {
+            list.push(node);
+        });
+        return list;
+    }
+    return [instance.$el];
+}
+exports.getRootElementsFromComponentInstance = getRootElementsFromComponentInstance;
 //# sourceMappingURL=el.js.map

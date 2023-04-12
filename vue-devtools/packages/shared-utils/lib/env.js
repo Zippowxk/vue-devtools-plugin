@@ -18,7 +18,7 @@ exports.keys = {
     alt: exports.isMac ? '&#8997;' : 'Alt',
     del: 'Del',
     enter: 'Enter',
-    esc: 'Esc'
+    esc: 'Esc',
 };
 function initEnv(Vue) {
     if (Vue.prototype.hasOwnProperty('$isChrome'))
@@ -29,7 +29,7 @@ function initEnv(Vue) {
         $isWindows: { get: () => exports.isWindows },
         $isMac: { get: () => exports.isMac },
         $isLinux: { get: () => exports.isLinux },
-        $keys: { get: () => exports.keys }
+        $keys: { get: () => exports.keys },
     });
     if (exports.isWindows)
         document.body.classList.add('platform-windows');

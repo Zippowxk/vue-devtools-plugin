@@ -1,31 +1,31 @@
 <script lang="ts">
 import PluginSourceIcon from '@front/features/plugin/PluginSourceIcon.vue'
 
-import { defineComponent, PropType, computed } from '@vue/composition-api'
+import { defineComponent, PropType, computed } from 'vue'
 import { useDarkMode } from '@front/util/theme'
 import { toStrHex, dimColor, boostColor } from '@front/util/color'
 import { Layer } from './composable'
 
 export default defineComponent({
   components: {
-    PluginSourceIcon
+    PluginSourceIcon,
   },
 
   props: {
     layer: {
       type: Object as PropType<Layer>,
-      required: true
+      required: true,
     },
 
     hover: {
       type: Boolean,
-      default: false
+      default: false,
     },
 
     selected: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
 
   setup (props, { emit }) {
@@ -43,9 +43,9 @@ export default defineComponent({
       select,
       color,
       dimmedColor,
-      boostedColot
+      boostedColot,
     }
-  }
+  },
 })
 </script>
 
@@ -93,7 +93,10 @@ export default defineComponent({
           <span
             class="truncate text-sm"
             :class="{
-              'opacity-50': layer.id === 'performance' && !$shared.performanceMonitoringEnabled,
+              'opacity-50': (
+                layer.id === 'component-event' && !$shared.componentEventsEnabled ||
+                layer.id === 'performance' && !$shared.performanceMonitoringEnabled
+              ),
             }"
             :style="{
               'color': selected ? `#${color}` : undefined
@@ -107,9 +110,23 @@ export default defineComponent({
           />
         </div>
 
-        <div class="flex items-center space-x-1">
+        <div
+          v-if="hover"
+          class="flex items-center space-x-1"
+        >
           <VueButton
-            v-if="hover && layer.id === 'performance'"
+            v-if="layer.id === 'component-event'"
+            class="text-xs px-1 py-0 h-5 hover:opacity-80"
+            :style="{
+              backgroundColor: `#${color}28`,
+            }"
+            @click.stop="$shared.componentEventsEnabled = !$shared.componentEventsEnabled"
+          >
+            {{ $shared.componentEventsEnabled ? 'Disable' : 'Enable' }}
+          </VueButton>
+
+          <VueButton
+            v-if="layer.id === 'performance'"
             class="text-xs px-1 py-0 h-5 hover:opacity-80"
             :style="{
               backgroundColor: `#${color}28`,
@@ -120,13 +137,26 @@ export default defineComponent({
           </VueButton>
 
           <VueButton
-            v-if="hover"
             class="text-xs px-1 py-0 h-5 hover:opacity-80"
             :style="{
               backgroundColor: `#${color}28`,
             }"
           >
             Select
+          </VueButton>
+
+          <VueButton
+            v-tooltip="'Hide layer'"
+            class="leading-[0] p-0 w-5 h-5 hover:opacity-80"
+            :style="{
+              backgroundColor: `#${color}28`,
+            }"
+            @click.stop="$emit('hide')"
+          >
+            <VueIcon
+              icon="visibility_off"
+              class="w-3 h-3"
+            />
           </VueButton>
         </div>
       </div>

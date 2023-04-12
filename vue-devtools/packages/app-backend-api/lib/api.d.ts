@@ -1,19 +1,23 @@
-import { Bridge } from '@vue-devtools/shared-utils';
+import { Bridge, StateEditor } from '@vue-devtools/shared-utils';
 import { Hooks, HookPayloads, App, DevtoolsPluginApi, ComponentInstance, TimelineLayerOptions, TimelineEventOptions, CustomInspectorOptions, EditStatePayload, WithId, ComponentTreeNode, ComponentDevtoolsOptions } from '@vue/devtools-api';
 import { DevtoolsHookable } from './hooks';
 import { BackendContext } from './backend-context';
 import { Plugin } from './plugin';
+import { DevtoolsBackend } from './backend';
+import { AppRecord } from './app-record';
 export declare class DevtoolsApi {
     bridge: Bridge;
     ctx: BackendContext;
-    constructor(bridge: Bridge, ctx: BackendContext);
-    get on(): DevtoolsHookable;
+    backend: DevtoolsBackend;
+    on: DevtoolsHookable;
+    stateEditor: StateEditor;
+    constructor(backend: DevtoolsBackend, ctx: BackendContext);
     callHook<T extends Hooks>(eventType: T, payload: HookPayloads[T], ctx?: BackendContext): Promise<HookPayloads[T]>;
     transformCall(callName: string, ...args: any[]): Promise<any[]>;
-    getAppRecordName(app: App, id: number): Promise<string>;
+    getAppRecordName(app: App, defaultName: string): Promise<string>;
     getAppRootInstance(app: App): Promise<any>;
     registerApplication(app: App): Promise<void>;
-    walkComponentTree(instance: ComponentInstance, maxDepth?: number, filter?: string): Promise<ComponentTreeNode[]>;
+    walkComponentTree(instance: ComponentInstance, maxDepth?: number, filter?: string, recursively?: boolean): Promise<ComponentTreeNode[]>;
     visitComponentTree(instance: ComponentInstance, treeNode: ComponentTreeNode, filter: string, app: App): Promise<ComponentTreeNode>;
     walkComponentParents(instance: ComponentInstance): Promise<any[]>;
     inspectComponent(instance: ComponentInstance, app: App): Promise<import("@vue/devtools-api").InspectedComponentData>;
@@ -32,13 +36,17 @@ export declare class DevtoolsApi {
     getInspectorTree(inspectorId: string, app: App, filter: string): Promise<import("@vue/devtools-api").CustomInspectorNode[]>;
     getInspectorState(inspectorId: string, app: App, nodeId: string): Promise<import("@vue/devtools-api").CustomInspectorState>;
     editInspectorState(inspectorId: string, app: App, nodeId: string, dotPath: string, type: string, state: EditStatePayload): Promise<void>;
+    now(): number;
 }
-export declare class DevtoolsPluginApiInstance implements DevtoolsPluginApi {
+export declare class DevtoolsPluginApiInstance<TSettings = any> implements DevtoolsPluginApi<TSettings> {
     bridge: Bridge;
     ctx: BackendContext;
     plugin: Plugin;
+    appRecord: AppRecord;
+    backendApi: DevtoolsApi;
     on: DevtoolsHookable;
-    constructor(plugin: Plugin, ctx: BackendContext);
+    private defaultSettings;
+    constructor(plugin: Plugin, appRecord: AppRecord, ctx: BackendContext);
     notifyComponentUpdate(instance?: ComponentInstance): Promise<void>;
     addTimelineLayer(options: TimelineLayerOptions): boolean;
     addTimelineEvent(options: TimelineEventOptions): boolean;
@@ -51,6 +59,9 @@ export declare class DevtoolsPluginApiInstance implements DevtoolsPluginApi {
     getComponentInstances(app: App): Promise<any[]>;
     highlightElement(instance: ComponentInstance): boolean;
     unhighlightElement(): boolean;
+    getSettings(pluginId?: string): TSettings;
+    setSettings(value: TSettings, pluginId?: string): void;
+    now(): number;
     private get enabled();
     private hasPermission;
 }

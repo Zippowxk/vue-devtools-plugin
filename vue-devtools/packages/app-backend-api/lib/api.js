@@ -2,220 +2,209 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DevtoolsPluginApiInstance = exports.DevtoolsApi = void 0;
 const shared_utils_1 = require("@vue-devtools/shared-utils");
+const devtools_api_1 = require("@vue/devtools-api");
 const hooks_1 = require("./hooks");
-let backendOn;
 const pluginOn = [];
 class DevtoolsApi {
-    constructor(bridge, ctx) {
-        this.bridge = bridge;
+    constructor(backend, ctx) {
+        this.stateEditor = new shared_utils_1.StateEditor();
+        this.backend = backend;
         this.ctx = ctx;
-        if (!backendOn) {
-            backendOn = new hooks_1.DevtoolsHookable(ctx);
-        }
-    }
-    get on() {
-        return backendOn;
+        this.bridge = ctx.bridge;
+        this.on = new hooks_1.DevtoolsHookable(ctx);
     }
     async callHook(eventType, payload, ctx = this.ctx) {
-        payload = await backendOn.callHandlers(eventType, payload, ctx);
+        payload = await this.on.callHandlers(eventType, payload, ctx);
         for (const on of pluginOn) {
             payload = await on.callHandlers(eventType, payload, ctx);
         }
         return payload;
     }
     async transformCall(callName, ...args) {
-        const payload = await this.callHook("transformCall" /* TRANSFORM_CALL */, {
+        const payload = await this.callHook("transformCall" /* Hooks.TRANSFORM_CALL */, {
             callName,
             inArgs: args,
-            outArgs: args.slice()
+            outArgs: args.slice(),
         });
         return payload.outArgs;
     }
-    async getAppRecordName(app, id) {
-        const payload = await this.callHook("getAppRecordName" /* GET_APP_RECORD_NAME */, {
+    async getAppRecordName(app, defaultName) {
+        const payload = await this.callHook("getAppRecordName" /* Hooks.GET_APP_RECORD_NAME */, {
             app,
-            name: null
+            name: null,
         });
         if (payload.name) {
             return payload.name;
         }
         else {
-            return `App ${id + 1}`;
+            return `App ${defaultName}`;
         }
     }
     async getAppRootInstance(app) {
-        const payload = await this.callHook("getAppRootInstance" /* GET_APP_ROOT_INSTANCE */, {
+        const payload = await this.callHook("getAppRootInstance" /* Hooks.GET_APP_ROOT_INSTANCE */, {
             app,
-            root: null
+            root: null,
         });
         return payload.root;
     }
     async registerApplication(app) {
-        await this.callHook("registerApplication" /* REGISTER_APPLICATION */, {
-            app
+        await this.callHook("registerApplication" /* Hooks.REGISTER_APPLICATION */, {
+            app,
         });
     }
-    async walkComponentTree(instance, maxDepth = -1, filter = null) {
-        const payload = await this.callHook("walkComponentTree" /* WALK_COMPONENT_TREE */, {
+    async walkComponentTree(instance, maxDepth = -1, filter = null, recursively = false) {
+        const payload = await this.callHook("walkComponentTree" /* Hooks.WALK_COMPONENT_TREE */, {
             componentInstance: instance,
             componentTreeData: null,
             maxDepth,
-            filter
+            filter,
+            recursively,
         });
         return payload.componentTreeData;
     }
     async visitComponentTree(instance, treeNode, filter = null, app) {
-        const payload = await this.callHook("visitComponentTree" /* VISIT_COMPONENT_TREE */, {
+        const payload = await this.callHook("visitComponentTree" /* Hooks.VISIT_COMPONENT_TREE */, {
             app,
             componentInstance: instance,
             treeNode,
-            filter
+            filter,
         });
         return payload.treeNode;
     }
     async walkComponentParents(instance) {
-        const payload = await this.callHook("walkComponentParents" /* WALK_COMPONENT_PARENTS */, {
+        const payload = await this.callHook("walkComponentParents" /* Hooks.WALK_COMPONENT_PARENTS */, {
             componentInstance: instance,
-            parentInstances: []
+            parentInstances: [],
         });
         return payload.parentInstances;
     }
     async inspectComponent(instance, app) {
-        const payload = await this.callHook("inspectComponent" /* INSPECT_COMPONENT */, {
+        const payload = await this.callHook("inspectComponent" /* Hooks.INSPECT_COMPONENT */, {
             app,
             componentInstance: instance,
-            instanceData: null
+            instanceData: null,
         });
         return payload.instanceData;
     }
     async getComponentBounds(instance) {
-        const payload = await this.callHook("getComponentBounds" /* GET_COMPONENT_BOUNDS */, {
+        const payload = await this.callHook("getComponentBounds" /* Hooks.GET_COMPONENT_BOUNDS */, {
             componentInstance: instance,
-            bounds: null
+            bounds: null,
         });
         return payload.bounds;
     }
     async getComponentName(instance) {
-        const payload = await this.callHook("getComponentName" /* GET_COMPONENT_NAME */, {
+        const payload = await this.callHook("getComponentName" /* Hooks.GET_COMPONENT_NAME */, {
             componentInstance: instance,
-            name: null
+            name: null,
         });
         return payload.name;
     }
     async getComponentInstances(app) {
-        const payload = await this.callHook("getComponentInstances" /* GET_COMPONENT_INSTANCES */, {
+        const payload = await this.callHook("getComponentInstances" /* Hooks.GET_COMPONENT_INSTANCES */, {
             app,
-            componentInstances: []
+            componentInstances: [],
         });
         return payload.componentInstances;
     }
     async getElementComponent(element) {
-        const payload = await this.callHook("getElementComponent" /* GET_ELEMENT_COMPONENT */, {
+        const payload = await this.callHook("getElementComponent" /* Hooks.GET_ELEMENT_COMPONENT */, {
             element,
-            componentInstance: null
+            componentInstance: null,
         });
         return payload.componentInstance;
     }
     async getComponentRootElements(instance) {
-        const payload = await this.callHook("getComponentRootElements" /* GET_COMPONENT_ROOT_ELEMENTS */, {
+        const payload = await this.callHook("getComponentRootElements" /* Hooks.GET_COMPONENT_ROOT_ELEMENTS */, {
             componentInstance: instance,
-            rootElements: []
+            rootElements: [],
         });
         return payload.rootElements;
     }
     async editComponentState(instance, dotPath, type, state, app) {
         const arrayPath = dotPath.split('.');
-        const payload = await this.callHook("editComponentState" /* EDIT_COMPONENT_STATE */, {
+        const payload = await this.callHook("editComponentState" /* Hooks.EDIT_COMPONENT_STATE */, {
             app,
             componentInstance: instance,
             path: arrayPath,
             type,
             state,
-            set: (object, path = arrayPath, value = state.value, cb) => shared_utils_1.set(object, path, value, cb || createDefaultSetCallback(state))
+            set: (object, path = arrayPath, value = state.value, cb) => this.stateEditor.set(object, path, value, cb || this.stateEditor.createDefaultSetCallback(state)),
         });
         return payload.componentInstance;
     }
     async getComponentDevtoolsOptions(instance) {
-        const payload = await this.callHook("getAppDevtoolsOptions" /* GET_COMPONENT_DEVTOOLS_OPTIONS */, {
+        const payload = await this.callHook("getAppDevtoolsOptions" /* Hooks.GET_COMPONENT_DEVTOOLS_OPTIONS */, {
             componentInstance: instance,
-            options: null
+            options: null,
         });
         return payload.options || {};
     }
     async getComponentRenderCode(instance) {
-        const payload = await this.callHook("getComponentRenderCode" /* GET_COMPONENT_RENDER_CODE */, {
+        const payload = await this.callHook("getComponentRenderCode" /* Hooks.GET_COMPONENT_RENDER_CODE */, {
             componentInstance: instance,
-            code: null
+            code: null,
         });
         return {
-            code: payload.code
+            code: payload.code,
         };
     }
     async inspectTimelineEvent(eventData, app) {
-        const payload = await this.callHook("inspectTimelineEvent" /* INSPECT_TIMELINE_EVENT */, {
+        const payload = await this.callHook("inspectTimelineEvent" /* Hooks.INSPECT_TIMELINE_EVENT */, {
             event: eventData.event,
             layerId: eventData.layerId,
             app,
             data: eventData.event.data,
-            all: eventData.all
+            all: eventData.all,
         });
         return payload.data;
     }
     async clearTimeline() {
-        await this.callHook("timelineCleared" /* TIMELINE_CLEARED */, {});
+        await this.callHook("timelineCleared" /* Hooks.TIMELINE_CLEARED */, {});
     }
     async getInspectorTree(inspectorId, app, filter) {
-        const payload = await this.callHook("getInspectorTree" /* GET_INSPECTOR_TREE */, {
+        const payload = await this.callHook("getInspectorTree" /* Hooks.GET_INSPECTOR_TREE */, {
             inspectorId,
             app,
             filter,
-            rootNodes: []
+            rootNodes: [],
         });
         return payload.rootNodes;
     }
     async getInspectorState(inspectorId, app, nodeId) {
-        const payload = await this.callHook("getInspectorState" /* GET_INSPECTOR_STATE */, {
+        const payload = await this.callHook("getInspectorState" /* Hooks.GET_INSPECTOR_STATE */, {
             inspectorId,
             app,
             nodeId,
-            state: null
+            state: null,
         });
         return payload.state;
     }
     async editInspectorState(inspectorId, app, nodeId, dotPath, type, state) {
         const arrayPath = dotPath.split('.');
-        await this.callHook("editInspectorState" /* EDIT_INSPECTOR_STATE */, {
+        await this.callHook("editInspectorState" /* Hooks.EDIT_INSPECTOR_STATE */, {
             inspectorId,
             app,
             nodeId,
             path: arrayPath,
             type,
             state,
-            set: (object, path = arrayPath, value = state.value, cb) => shared_utils_1.set(object, path, value, cb || createDefaultSetCallback(state))
+            set: (object, path = arrayPath, value = state.value, cb) => this.stateEditor.set(object, path, value, cb || this.stateEditor.createDefaultSetCallback(state)),
         });
+    }
+    now() {
+        return (0, devtools_api_1.now)();
     }
 }
 exports.DevtoolsApi = DevtoolsApi;
-function createDefaultSetCallback(state) {
-    return (obj, field, value) => {
-        if (state.remove || state.newKey) {
-            if (Array.isArray(obj)) {
-                obj.splice(field, 1);
-            }
-            else {
-                delete obj[field];
-            }
-        }
-        if (!state.remove) {
-            obj[state.newKey || field] = value;
-        }
-    };
-}
 class DevtoolsPluginApiInstance {
-    constructor(plugin, ctx) {
+    constructor(plugin, appRecord, ctx) {
         this.bridge = ctx.bridge;
         this.ctx = ctx;
         this.plugin = plugin;
+        this.appRecord = appRecord;
+        this.backendApi = appRecord.backend.api;
+        this.defaultSettings = (0, shared_utils_1.getPluginDefaultSettings)(plugin.descriptor.settings);
         this.on = new hooks_1.DevtoolsHookable(ctx, plugin);
         pluginOn.push(this.on);
     }
@@ -224,7 +213,7 @@ class DevtoolsPluginApiInstance {
         if (!this.enabled || !this.hasPermission(shared_utils_1.PluginPermission.COMPONENTS))
             return;
         if (instance) {
-            this.ctx.hook.emit(shared_utils_1.HookEvents.COMPONENT_UPDATED, ...await this.ctx.api.transformCall(shared_utils_1.HookEvents.COMPONENT_UPDATED, instance));
+            this.ctx.hook.emit(shared_utils_1.HookEvents.COMPONENT_UPDATED, ...await this.backendApi.transformCall(shared_utils_1.HookEvents.COMPONENT_UPDATED, instance));
         }
         else {
             this.ctx.hook.emit(shared_utils_1.HookEvents.COMPONENT_UPDATED);
@@ -267,13 +256,13 @@ class DevtoolsPluginApiInstance {
         return true;
     }
     getComponentBounds(instance) {
-        return this.ctx.api.getComponentBounds(instance);
+        return this.backendApi.getComponentBounds(instance);
     }
     getComponentName(instance) {
-        return this.ctx.api.getComponentName(instance);
+        return this.backendApi.getComponentName(instance);
     }
     getComponentInstances(app) {
-        return this.ctx.api.getComponentInstances(app);
+        return this.backendApi.getComponentInstances(app);
     }
     highlightElement(instance) {
         if (!this.enabled || !this.hasPermission(shared_utils_1.PluginPermission.COMPONENTS))
@@ -287,11 +276,20 @@ class DevtoolsPluginApiInstance {
         this.ctx.hook.emit(shared_utils_1.HookEvents.COMPONENT_UNHIGHLIGHT, this.plugin);
         return true;
     }
+    getSettings(pluginId) {
+        return (0, shared_utils_1.getPluginSettings)(pluginId !== null && pluginId !== void 0 ? pluginId : this.plugin.descriptor.id, this.defaultSettings);
+    }
+    setSettings(value, pluginId) {
+        (0, shared_utils_1.setPluginSettings)(pluginId !== null && pluginId !== void 0 ? pluginId : this.plugin.descriptor.id, value);
+    }
+    now() {
+        return (0, devtools_api_1.now)();
+    }
     get enabled() {
-        return shared_utils_1.hasPluginPermission(this.plugin.descriptor.id, shared_utils_1.PluginPermission.ENABLED);
+        return (0, shared_utils_1.hasPluginPermission)(this.plugin.descriptor.id, shared_utils_1.PluginPermission.ENABLED);
     }
     hasPermission(permission) {
-        return shared_utils_1.hasPluginPermission(this.plugin.descriptor.id, permission);
+        return (0, shared_utils_1.hasPluginPermission)(this.plugin.descriptor.id, permission);
     }
 }
 exports.DevtoolsPluginApiInstance = DevtoolsPluginApiInstance;

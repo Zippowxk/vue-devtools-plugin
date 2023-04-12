@@ -1,11 +1,15 @@
-import cloneDeep from 'lodash/cloneDeep'
+import Vue from 'vue'
 import { Bridge, BridgeEvents, parse } from '@vue-devtools/shared-utils'
 import { getApps } from '@front/features/apps'
 import {
   inspectedEvent,
   inspectedEventData,
   inspectedEventPendingId,
-  TimelineEvent
+  TimelineEvent,
+  markersAllApps,
+  markersPerApp,
+  MarkerFromBackend,
+  TimelineMarker,
 } from './store'
 import { getLayers, fetchLayers, layerFactory } from './layers'
 import { addEvent } from './events'
@@ -28,7 +32,7 @@ export function setupTimelineBridgeEvents (bridge: Bridge) {
         return
       }
 
-      addEvent(appId, cloneDeep(event), layer)
+      addEvent(appId, event, layer)
     }
   })
 
@@ -48,7 +52,7 @@ export function setupTimelineBridgeEvents (bridge: Bridge) {
           const pendingKey = `${appId}:${layer.id}`
           if (pendingEvents[pendingKey] && pendingEvents[pendingKey].length) {
             for (const event of pendingEvents[pendingKey]) {
-              addEvent(appId, cloneDeep(event), getLayers(appId).find(l => l.id === layer.id))
+              addEvent(appId, event, getLayers(appId).find(l => l.id === layer.id))
             }
             pendingEvents[pendingKey] = []
           }
@@ -86,7 +90,51 @@ export function setupTimelineBridgeEvents (bridge: Bridge) {
     }
 
     for (const event of events) {
-      addEvent(appId, cloneDeep(event), layer)
+      addEvent(appId, event, layer)
+    }
+  })
+
+  bridge.on(BridgeEvents.TO_FRONT_TIMELINE_LOAD_MARKERS, ({ markers, appId }: { markers: MarkerFromBackend[], appId: string }) => {
+    const allList: TimelineMarker[] = []
+    const appList: TimelineMarker[] = []
+
+    for (const marker of markers) {
+      const result = {
+        ...marker,
+        x: 0,
+      }
+      if (marker.all) {
+        allList.push(result)
+      } else {
+        appList.push(result)
+      }
+    }
+
+    markersAllApps.value = allList
+    Vue.set(markersPerApp.value, appId, appList)
+  })
+
+  bridge.on(BridgeEvents.TO_FRONT_TIMELINE_MARKER, ({ marker, appId }: { marker: MarkerFromBackend, appId: string }) => {
+    let targetList: TimelineMarker[]
+    if (marker.all) {
+      targetList = markersAllApps.value
+    } else {
+      if (!markersPerApp.value[appId]) {
+        Vue.set(markersPerApp.value, appId, [])
+      }
+      targetList = markersPerApp.value[appId]
+    }
+
+    const result = {
+      ...marker,
+      x: 0,
+    }
+
+    const index = targetList.findIndex(m => m.id === marker.id)
+    if (index !== -1) {
+      targetList.splice(index, 1, result)
+    } else {
+      targetList.push(result)
     }
   })
 }

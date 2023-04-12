@@ -1,5 +1,5 @@
-import { InspectorNodeTag } from './api'
-import { ID } from './util'
+import type { InspectorNodeTag } from './api.js'
+import type { ID } from './util.js'
 
 export type ComponentInstance = any // @TODO
 
@@ -12,11 +12,12 @@ export interface ComponentTreeNode {
   isFragment: boolean
   hasChildren: boolean
   children: ComponentTreeNode[]
-  positionTop?: number
+  domOrder?: number[]
   consoleId?: string
   isRouterView?: boolean
   macthedRouteSegment?: string
   tags: InspectorNodeTag[]
+  autoOpen: boolean
   meta?: any
 }
 
@@ -58,6 +59,7 @@ export interface ComponentCustomState extends ComponentStateBase {
 export type CustomState = {
   _custom: {
     type: ComponentBuiltinCustomStateTypes | string
+    objectType?: string
     display?: string
     tooltip?: string
     value?: any

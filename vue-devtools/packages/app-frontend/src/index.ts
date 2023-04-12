@@ -1,10 +1,12 @@
 import './assets/style/index.styl'
+import './assets/style/index.postcss'
 
-import './composition'
 import { initStorage, Shell } from '@vue-devtools/shared-utils'
 import { createApp, connectApp } from './app'
 import { setAppConnected } from './features/connection'
 import { getBridge } from './features/bridge'
+
+export { setAppConnected } from './features/connection'
 
 /**
  * Create the main devtools app. Expects to be called with a shell interface

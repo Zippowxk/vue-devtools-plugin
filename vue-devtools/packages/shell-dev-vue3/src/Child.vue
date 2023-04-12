@@ -12,10 +12,15 @@ export default {
     const reactiveObject = reactive({
       foo: 'bar',
       hello: {
-        world: 1
+        world: 1,
       },
-      nil: undefined
+      nil: undefined,
+      nestedRef: ref('meow'),
+      nestedComputed: computed(() => answer.value * 4),
+      map: new Map(),
     })
+
+    reactiveObject.map.set('foo', ref('bar'))
 
     function myMethodFromSetup () {
       console.log('foobar')
@@ -27,7 +32,7 @@ export default {
       get: () => internalComputed.value,
       set: value => {
         internalComputed.value = value
-      }
+      },
     })
 
     return {
@@ -35,13 +40,13 @@ export default {
       doubleAnswer,
       reactiveObject,
       myMethodFromSetup,
-      writableComputed
+      writableComputed,
     }
   },
 
   data () {
     return {
-      classicAnswer: 42
+      classicAnswer: 42,
     }
   },
 
@@ -56,19 +61,19 @@ export default {
       },
       set (value) {
         this.classicAnswer = value
-      }
-    }
+      },
+    },
   },
 
   mounted () {
     this.$emit('child mounted', 'bar')
-  }
+  },
 }
 </script>
 
 <template>
   <div>
-    Child: {{ answer }} x2: {{ doubleAnswer }}
+    Child: {{ answer }} x2: {{ doubleAnswer }} x4: {{ reactiveObject.nestedComputed }}
     <button @click="answer *= 2">
       double it
     </button>

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { computed, defineComponent, PropType } from '@vue/composition-api'
+import { computed, defineComponent, PropType } from 'vue'
 import { formatTime } from '@front/util/format'
 import { useInspectedEvent, TimelineEvent } from './composable'
 
@@ -7,35 +7,35 @@ export default defineComponent({
   props: {
     event: {
       type: Object as PropType<TimelineEvent>,
-      required: true
+      required: true,
     },
 
     selected: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
 
   setup (props) {
-    const time = computed(() => formatTime(props.event.time))
+    const time = computed(() => formatTime(props.event.time / 1000))
 
     const {
-      inspectedEvent
+      inspectedEvent,
     } = useInspectedEvent()
 
     const isInspected = computed(() => inspectedEvent.value === props.event)
 
     return {
       time,
-      isInspected
+      isInspected,
     }
-  }
+  },
 })
 </script>
 
 <template>
   <div
-    class="event border-gray-100 dark:border-gray-900 border-b flex items-center space-x-2 px-2 text-xs cursor-pointer select-none"
+    class="event border-gray-100 dark:border-gray-900 border-b flex items-center space-x-2 pl-3 pr-2 text-xs cursor-pointer select-none"
     :class="{
       'inspected bg-green-500 text-white': isInspected,
       'hover:bg-blue-100 dark:hover:bg-blue-900 text-bluegray-800 dark:text-bluegray-200': !isInspected

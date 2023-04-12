@@ -1,14 +1,21 @@
 import { AppRecord } from './app-record';
 import { DevtoolsApi } from './api';
+import { BackendContext } from './backend-context';
 export declare enum BuiltinBackendFeature {
-    COMPONENTS = "components",
-    EVENTS = "events",
-    VUEX = "vuex",
+    /**
+     * @deprecated
+     */
     FLUSH = "flush"
 }
-export interface DevtoolsBackend {
+export interface DevtoolsBackendOptions {
     frameworkVersion: 1 | 2 | 3;
-    availableFeatures: (BuiltinBackendFeature | string)[];
+    features: (BuiltinBackendFeature | string)[];
     setup: (api: DevtoolsApi) => void;
     setupApp?: (api: DevtoolsApi, app: AppRecord) => void;
 }
+export declare function defineBackend(options: DevtoolsBackendOptions): DevtoolsBackendOptions;
+export interface DevtoolsBackend {
+    options: DevtoolsBackendOptions;
+    api: DevtoolsApi;
+}
+export declare function createBackend(options: DevtoolsBackendOptions, ctx: BackendContext): DevtoolsBackend;

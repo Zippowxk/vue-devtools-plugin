@@ -36,12 +36,12 @@ exports.builtinLayers = [
             div.appendChild(text);
             event.renderMeta.textEl = text;
             return div;
-        }
+        },
     },
     {
         id: 'keyboard',
         label: 'Keyboard',
-        color: 0x8151AF
+        color: 0x8151AF,
     },
     {
         id: 'component-event',
@@ -80,7 +80,7 @@ exports.builtinLayers = [
             div.appendChild(text);
             event.renderMeta.drawn = true;
             return div;
-        }
+        },
     },
     {
         id: 'performance',
@@ -88,7 +88,7 @@ exports.builtinLayers = [
         color: 0x41b86a,
         groupsOnly: true,
         skipScreenshots: true,
-        ignoreNoDurationGroups: true
-    }
+        ignoreNoDurationGroups: true,
+    },
 ];
 //# sourceMappingURL=timeline-builtins.js.map

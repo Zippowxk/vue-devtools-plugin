@@ -3,17 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isEmptyObject = exports.copyToClipboard = exports.escape = exports.openInEditor = exports.focusInput = exports.has = exports.get = exports.set = exports.sortByKey = exports.searchDeepInObject = exports.isPlainObject = exports.revive = exports.parse = exports.getCustomRefDetails = exports.getCustomHTMLElementDetails = exports.getCustomFunctionDetails = exports.getCustomComponentDefinitionDetails = exports.getComponentName = exports.reviveSet = exports.getCustomSetDetails = exports.reviveMap = exports.getCustomMapDetails = exports.stringify = exports.specialTokenToString = exports.MAX_ARRAY_SIZE = exports.MAX_STRING_SIZE = exports.SPECIAL_TOKENS = exports.NAN = exports.NEGATIVE_INFINITY = exports.INFINITY = exports.UNDEFINED = exports.inDoc = exports.getComponentDisplayName = exports.kebabize = exports.camelize = exports.classify = void 0;
-Object.defineProperty(window,'process',{
-  get(){
-    return {platform:'browers'}
-  },
-  configurable: false
-})
+exports.isEmptyObject = exports.copyToClipboard = exports.escape = exports.openInEditor = exports.focusInput = exports.simpleGet = exports.sortByKey = exports.searchDeepInObject = exports.isPlainObject = exports.revive = exports.parse = exports.getCustomRefDetails = exports.getCustomHTMLElementDetails = exports.getCustomFunctionDetails = exports.getCustomComponentDefinitionDetails = exports.getComponentName = exports.reviveSet = exports.getCustomSetDetails = exports.reviveMap = exports.getCustomMapDetails = exports.stringify = exports.specialTokenToString = exports.MAX_ARRAY_SIZE = exports.MAX_STRING_SIZE = exports.SPECIAL_TOKENS = exports.NAN = exports.NEGATIVE_INFINITY = exports.INFINITY = exports.UNDEFINED = exports.inDoc = exports.getComponentDisplayName = exports.kebabize = exports.camelize = exports.classify = void 0;
 const path_1 = __importDefault(require("path"));
 const transfer_1 = require("./transfer");
 const backend_1 = require("./backend");
-const shared_data_1 = __importDefault(require("./shared-data"));
+const shared_data_1 = require("./shared-data");
 const env_1 = require("./env");
 function cached(fn) {
     const cache = Object.create(null);
@@ -24,11 +18,15 @@ function cached(fn) {
 }
 const classifyRE = /(?:^|[-_/])(\w)/g;
 exports.classify = cached((str) => {
-    return str && str.replace(classifyRE, toUpper);
+    // fix: str.replace may causes '"replace" is not a function' exception.
+    // This bug may causes the UI 'Component Filter' to not work properly
+    // e.g. The type of 'str' is Number.
+    // So need cover 'str' to String.
+    return str && ('' + str).replace(classifyRE, toUpper);
 });
 const camelizeRE = /-(\w)/g;
 exports.camelize = cached((str) => {
-    return str.replace(camelizeRE, toUpper);
+    return str && str.replace(camelizeRE, toUpper);
 });
 const kebabizeRE = /([a-z0-9])([A-Z])/g;
 exports.kebabize = cached((str) => {
@@ -44,9 +42,9 @@ function toUpper(_, c) {
 function getComponentDisplayName(originalName, style = 'class') {
     switch (style) {
         case 'class':
-            return exports.classify(originalName);
+            return (0, exports.classify)(originalName);
         case 'kebab':
-            return exports.kebabize(originalName);
+            return (0, exports.kebabize)(originalName);
         case 'original':
         default:
             return originalName;
@@ -77,7 +75,7 @@ exports.SPECIAL_TOKENS = {
     null: null,
     '-Infinity': exports.NEGATIVE_INFINITY,
     Infinity: exports.INFINITY,
-    NaN: exports.NAN
+    NaN: exports.NAN,
 };
 exports.MAX_STRING_SIZE = 10000;
 exports.MAX_ARRAY_SIZE = 5000;
@@ -155,13 +153,18 @@ class ReviveCache {
     }
 }
 const reviveCache = new ReviveCache(1000);
-function stringify(data) {
+const replacers = {
+    internal: replacerForInternal,
+    user: replaceForUser,
+};
+function stringify(data, target = 'internal') {
     // Create a fresh cache for each serialization
     encodeCache.clear();
-    return transfer_1.stringifyCircularAutoChunks(data, replacer);
+    return (0, transfer_1.stringifyCircularAutoChunks)(data, replacers[target]);
 }
 exports.stringify = stringify;
-function replacer(key) {
+function replacerForInternal(key) {
+    var _a;
     // @ts-ignore
     const val = this[key];
     const type = typeof val;
@@ -171,14 +174,14 @@ function replacer(key) {
             return {
                 _isArray: true,
                 length: l,
-                items: val.slice(0, exports.MAX_ARRAY_SIZE)
+                items: val.slice(0, exports.MAX_ARRAY_SIZE),
             };
         }
         return val;
     }
     else if (typeof val === 'string') {
         if (val.length > exports.MAX_STRING_SIZE) {
-            return val.substr(0, exports.MAX_STRING_SIZE) + `... (${(val.length)} total length)`;
+            return val.substring(0, exports.MAX_STRING_SIZE) + `... (${(val.length)} total length)`;
         }
         else {
             return val;
@@ -218,13 +221,13 @@ function replacer(key) {
             return `[native Error ${val.message}<>${val.stack}]`;
         }
         else if (val.state && val._vm) {
-            return encodeCache.cache(val, () => backend_1.getCustomStoreDetails(val));
+            return encodeCache.cache(val, () => (0, backend_1.getCustomStoreDetails)(val));
         }
         else if (val.constructor && val.constructor.name === 'VueRouter') {
-            return encodeCache.cache(val, () => backend_1.getCustomRouterDetails(val));
+            return encodeCache.cache(val, () => (0, backend_1.getCustomRouterDetails)(val));
         }
-        else if (backend_1.isVueInstance(val)) {
-            return encodeCache.cache(val, () => backend_1.getCustomInstanceDetails(val));
+        else if ((0, backend_1.isVueInstance)(val)) {
+            return encodeCache.cache(val, () => (0, backend_1.getCustomInstanceDetails)(val));
         }
         else if (typeof val.render === 'function') {
             return encodeCache.cache(val, () => getCustomComponentDefinitionDetails(val));
@@ -232,12 +235,46 @@ function replacer(key) {
         else if (val.constructor && val.constructor.name === 'VNode') {
             return `[native VNode <${val.tag}>]`;
         }
-        else if (val instanceof HTMLElement) {
+        else if (typeof HTMLElement !== 'undefined' && val instanceof HTMLElement) {
             return encodeCache.cache(val, () => getCustomHTMLElementDetails(val));
         }
+        else if (((_a = val.constructor) === null || _a === void 0 ? void 0 : _a.name) === 'Store' && val._wrappedGetters) {
+            return `[object Store]`;
+        }
+        else if (val.currentRoute) {
+            return `[object Router]`;
+        }
+        const customDetails = (0, backend_1.getCustomObjectDetails)(val, proto);
+        if (customDetails != null)
+            return customDetails;
     }
     else if (Number.isNaN(val)) {
         return exports.NAN;
+    }
+    return sanitize(val);
+}
+// @TODO revive from backend to have more data to the clipboard
+function replaceForUser(key) {
+    // @ts-ignore
+    let val = this[key];
+    const type = typeof val;
+    if ((val === null || val === void 0 ? void 0 : val._custom) && 'value' in val._custom) {
+        val = val._custom.value;
+    }
+    if (type !== 'object') {
+        if (val === exports.UNDEFINED) {
+            return undefined;
+        }
+        else if (val === exports.INFINITY) {
+            return Infinity;
+        }
+        else if (val === exports.NEGATIVE_INFINITY) {
+            return -Infinity;
+        }
+        else if (val === exports.NAN) {
+            return NaN;
+        }
+        return val;
     }
     return sanitize(val);
 }
@@ -245,7 +282,7 @@ function getCustomMapDetails(val) {
     const list = [];
     val.forEach((value, key) => list.push({
         key,
-        value
+        value,
     }));
     return {
         _custom: {
@@ -254,9 +291,9 @@ function getCustomMapDetails(val) {
             value: list,
             readOnly: true,
             fields: {
-                abstract: true
-            }
-        }
+                abstract: true,
+            },
+        },
     };
 }
 exports.getCustomMapDetails = getCustomMapDetails;
@@ -277,8 +314,8 @@ function getCustomSetDetails(val) {
             type: 'set',
             display: `Set[${list.length}]`,
             value: list,
-            readOnly: true
-        }
+            readOnly: true,
+        },
     };
 }
 exports.getCustomSetDetails = getCustomSetDetails;
@@ -304,7 +341,7 @@ function getComponentName(options) {
     }
     const file = options.__file; // injected by vue-loader
     if (file) {
-        return exports.classify(basename(file, '.vue'));
+        return (0, exports.classify)(basename(file, '.vue'));
     }
 }
 exports.getComponentName = getComponentName;
@@ -325,10 +362,10 @@ function getCustomComponentDefinitionDetails(def) {
             tooltip: 'Component definition',
             ...def.__file
                 ? {
-                    file: def.__file
+                    file: def.__file,
                 }
-                : {}
-        }
+                : {},
+        },
     };
 }
 exports.getCustomComponentDefinitionDetails = getCustomComponentDefinitionDetails;
@@ -346,35 +383,47 @@ function getCustomFunctionDetails(func) {
     // Trim any excess whitespace from the argument string
     const match = matches && matches[0];
     const args = typeof match === 'string'
-        ? `(${match.substr(1, match.length - 2).split(',').map(a => a.trim()).join(', ')})`
+        ? match
         : '(?)';
     const name = typeof func.name === 'string' ? func.name : '';
     return {
         _custom: {
             type: 'function',
-            display: `<span>f</span> ${escape(name)}${args}`,
-            _reviveId: reviveCache.cache(func)
-        }
+            display: `<span style="opacity:.5;">function</span> ${escape(name)}${args}`,
+            tooltip: string.trim() ? `<pre>${string}</pre>` : null,
+            _reviveId: reviveCache.cache(func),
+        },
     };
 }
 exports.getCustomFunctionDetails = getCustomFunctionDetails;
 function getCustomHTMLElementDetails(value) {
-    return {
-        _custom: {
-            type: 'HTMLElement',
-            display: `<span class="opacity-30">&lt;</span><span class="text-blue-500">${value.tagName.toLowerCase()}</span><span class="opacity-30">&gt;</span>`,
-            value: namedNodeMapToObject(value.attributes),
-            actions: [
-                {
-                    icon: 'input',
-                    tooltip: 'Log element to console',
-                    action: () => {
-                        console.log(value);
-                    }
-                }
-            ]
-        }
-    };
+    try {
+        return {
+            _custom: {
+                type: 'HTMLElement',
+                display: `<span class="opacity-30">&lt;</span><span class="text-blue-500">${value.tagName.toLowerCase()}</span><span class="opacity-30">&gt;</span>`,
+                value: namedNodeMapToObject(value.attributes),
+                actions: [
+                    {
+                        icon: 'input',
+                        tooltip: 'Log element to console',
+                        action: () => {
+                            // eslint-disable-next-line no-console
+                            console.log(value);
+                        },
+                    },
+                ],
+            },
+        };
+    }
+    catch (e) {
+        return {
+            _custom: {
+                type: 'HTMLElement',
+                display: `<span class="text-blue-500">${String(value)}</span>`,
+            },
+        };
+    }
 }
 exports.getCustomHTMLElementDetails = getCustomHTMLElementDetails;
 function namedNodeMapToObject(map) {
@@ -405,22 +454,22 @@ function getCustomRefDetails(instance, key, ref) {
                     (ref.id ? ` <span class="attr-title">id</span>="${ref.id}"` : '') +
                     (ref.className ? ` <span class="attr-title">class</span>="${ref.className}"` : '') + '&gt;',
                 uid: instance.__VUE_DEVTOOLS_UID__,
-                type: 'reference'
-            }
+                type: 'reference',
+            },
         };
     }
     return {
         type: '$refs',
         key: key,
         value,
-        editable: false
+        editable: false,
     };
 }
 exports.getCustomRefDetails = getCustomRefDetails;
 function parse(data, revive = false) {
     return revive
-        ? transfer_1.parseCircularAutoChunks(data, reviver)
-        : transfer_1.parseCircularAutoChunks(data);
+        ? (0, transfer_1.parseCircularAutoChunks)(data, reviver)
+        : (0, transfer_1.parseCircularAutoChunks)(data);
 }
 exports.parse = parse;
 const specialTypeRE = /^\[native (\w+) (.*?)(<>((.|\s)*))?\]$/;
@@ -444,7 +493,7 @@ function revive(val) {
     else if (val && val._custom) {
         const { _custom: custom } = val;
         if (custom.type === 'component') {
-            return backend_1.getInstanceMap().get(custom.id);
+            return (0, backend_1.getInstanceMap)().get(custom.id);
         }
         else if (custom.type === 'map') {
             return reviveMap(val);
@@ -465,7 +514,7 @@ function revive(val) {
     }
     else if (specialTypeRE.test(val)) {
         const [, type, string, , details] = specialTypeRE.exec(val);
-        const result = new window[type](string);
+        const result = new env_1.target[type](string);
         if (type === 'Error' && details) {
             result.stack = details;
         }
@@ -630,21 +679,7 @@ function sortByKey(state) {
     });
 }
 exports.sortByKey = sortByKey;
-function set(object, path, value, cb = null) {
-    const sections = Array.isArray(path) ? path : path.split('.');
-    while (sections.length > 1) {
-        object = object[sections.shift()];
-    }
-    const field = sections[0];
-    if (cb) {
-        cb(object, field, value);
-    }
-    else {
-        object[field] = value;
-    }
-}
-exports.set = set;
-function get(object, path) {
+function simpleGet(object, path) {
     const sections = Array.isArray(path) ? path : path.split('.');
     for (let i = 0; i < sections.length; i++) {
         object = object[sections[i]];
@@ -654,19 +689,7 @@ function get(object, path) {
     }
     return object;
 }
-exports.get = get;
-function has(object, path, parent = false) {
-    if (typeof object === 'undefined') {
-        return false;
-    }
-    const sections = Array.isArray(path) ? path.slice() : path.split('.');
-    const size = !parent ? 1 : 2;
-    while (object && sections.length > size) {
-        object = object[sections.shift()];
-    }
-    return object != null && Object.prototype.hasOwnProperty.call(object, sections[0]);
-}
-exports.has = has;
+exports.simpleGet = simpleGet;
 function focusInput(el) {
     el.focus();
     el.setSelectionRange(0, el.value.length);
@@ -675,7 +698,7 @@ exports.focusInput = focusInput;
 function openInEditor(file) {
     // Console display
     const fileName = file.replace(/\\/g, '\\\\');
-    const src = `fetch('${shared_data_1.default.openInEditorHost}__open-in-editor?file=${encodeURI(file)}').then(response => {
+    const src = `fetch('${shared_data_1.SharedData.openInEditorHost}__open-in-editor?file=${encodeURI(file)}').then(response => {
     if (response.ok) {
       console.log('File ${fileName} opened in editor')
     } else {
@@ -686,7 +709,7 @@ function openInEditor(file) {
       } else {
         console.log('%c' + msg, 'color:red')
       }
-      console.log('Check the setup of your project, see https://github.com/vuejs/vue-devtools/blob/master/docs/open-in-editor.md')
+      console.log('Check the setup of your project, see https://devtools.vuejs.org/guide/open-in-editor.html')
     }
   })`;
     if (env_1.isChrome) {
@@ -702,7 +725,7 @@ const ESC = {
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
-    '&': '&amp;'
+    '&': '&amp;',
 };
 function escape(s) {
     return s.replace(/[<>"&]/g, escapeChar);
@@ -712,10 +735,18 @@ function escapeChar(a) {
     return ESC[a] || a;
 }
 function copyToClipboard(state) {
+    let text;
+    if (typeof state !== 'object') {
+        text = String(state);
+    }
+    else {
+        text = stringify(state, 'user');
+    }
+    // @TODO navigator.clipboard is buggy in extensions
     if (typeof document === 'undefined')
         return;
     const dummyTextArea = document.createElement('textarea');
-    dummyTextArea.textContent = stringify(state);
+    dummyTextArea.textContent = text;
     document.body.appendChild(dummyTextArea);
     dummyTextArea.select();
     document.execCommand('copy');

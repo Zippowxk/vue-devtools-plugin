@@ -1,2 +1,1 @@
-import { DevtoolsBackend } from '@vue-devtools/app-backend-api';
-export declare const backend: DevtoolsBackend;
+export declare const backend: import("@vue-devtools/app-backend-api").DevtoolsBackendOptions;

@@ -1,21 +1,21 @@
 <script lang="ts">
-import { computed, defineComponent } from '@vue/composition-api'
+import { computed, defineComponent } from 'vue'
 import { hasPluginPermission, PluginPermission } from '@vue-devtools/shared-utils'
 
 export default defineComponent({
   props: {
     plugin: {
       type: Object,
-      required: true
-    }
+      required: true,
+    },
   },
 
   setup (props) {
     const enabled = computed(() => hasPluginPermission(props.plugin.id, PluginPermission.ENABLED))
     return {
-      enabled
+      enabled,
     }
-  }
+  },
 })
 </script>
 

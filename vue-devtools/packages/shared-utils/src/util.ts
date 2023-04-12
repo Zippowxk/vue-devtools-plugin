@@ -6,9 +6,10 @@ import {
   getCustomInstanceDetails,
   getCustomRouterDetails,
   getCustomStoreDetails,
-  isVueInstance
+  isVueInstance,
+  getCustomObjectDetails,
 } from './backend'
-import SharedData from './shared-data'
+import { SharedData } from './shared-data'
 import { isChrome, target } from './env'
 
 function cached (fn) {
@@ -21,12 +22,16 @@ function cached (fn) {
 
 const classifyRE = /(?:^|[-_/])(\w)/g
 export const classify = cached((str) => {
-  return str && str.replace(classifyRE, toUpper)
+  // fix: str.replace may causes '"replace" is not a function' exception.
+  // This bug may causes the UI 'Component Filter' to not work properly
+  // e.g. The type of 'str' is Number.
+  // So need cover 'str' to String.
+  return str && ('' + str).replace(classifyRE, toUpper)
 })
 
 const camelizeRE = /-(\w)/g
 export const camelize = cached((str) => {
-  return str.replace(camelizeRE, toUpper)
+  return str && str.replace(camelizeRE, toUpper)
 })
 
 const kebabizeRE = /([a-z0-9])([A-Z])/g
@@ -79,7 +84,7 @@ export const SPECIAL_TOKENS = {
   null: null,
   '-Infinity': NEGATIVE_INFINITY,
   Infinity: INFINITY,
-  NaN: NAN
+  NaN: NAN,
 }
 
 export const MAX_STRING_SIZE = 10000
@@ -169,13 +174,18 @@ class ReviveCache {
 
 const reviveCache = new ReviveCache(1000)
 
-export function stringify (data) {
-  // Create a fresh cache for each serialization
-  encodeCache.clear()
-  return stringifyCircularAutoChunks(data, replacer)
+const replacers = {
+  internal: replacerForInternal,
+  user: replaceForUser,
 }
 
-function replacer (key) {
+export function stringify (data, target: keyof typeof replacers = 'internal') {
+  // Create a fresh cache for each serialization
+  encodeCache.clear()
+  return stringifyCircularAutoChunks(data, replacers[target])
+}
+
+function replacerForInternal (key) {
   // @ts-ignore
   const val = this[key]
   const type = typeof val
@@ -185,13 +195,13 @@ function replacer (key) {
       return {
         _isArray: true,
         length: l,
-        items: val.slice(0, MAX_ARRAY_SIZE)
+        items: val.slice(0, MAX_ARRAY_SIZE),
       }
     }
     return val
   } else if (typeof val === 'string') {
     if (val.length > MAX_STRING_SIZE) {
-      return val.substr(0, MAX_STRING_SIZE) + `... (${(val.length)} total length)`
+      return val.substring(0, MAX_STRING_SIZE) + `... (${(val.length)} total length)`
     } else {
       return val
     }
@@ -228,11 +238,40 @@ function replacer (key) {
       return encodeCache.cache(val, () => getCustomComponentDefinitionDetails(val))
     } else if (val.constructor && val.constructor.name === 'VNode') {
       return `[native VNode <${val.tag}>]`
-    } else if (val instanceof HTMLElement) {
+    } else if (typeof HTMLElement !== 'undefined' && val instanceof HTMLElement) {
       return encodeCache.cache(val, () => getCustomHTMLElementDetails(val))
+    } else if (val.constructor?.name === 'Store' && val._wrappedGetters) {
+      return `[object Store]`
+    } else if (val.currentRoute) {
+      return `[object Router]`
     }
+    const customDetails = getCustomObjectDetails(val, proto)
+    if (customDetails != null) return customDetails
   } else if (Number.isNaN(val)) {
     return NAN
+  }
+  return sanitize(val)
+}
+
+// @TODO revive from backend to have more data to the clipboard
+function replaceForUser (key) {
+  // @ts-ignore
+  let val = this[key]
+  const type = typeof val
+  if (val?._custom && 'value' in val._custom) {
+    val = val._custom.value
+  }
+  if (type !== 'object') {
+    if (val === UNDEFINED) {
+      return undefined
+    } else if (val === INFINITY) {
+      return Infinity
+    } else if (val === NEGATIVE_INFINITY) {
+      return -Infinity
+    } else if (val === NAN) {
+      return NaN
+    }
+    return val
   }
   return sanitize(val)
 }
@@ -242,8 +281,8 @@ export function getCustomMapDetails (val) {
   val.forEach(
     (value, key) => list.push({
       key,
-      value
-    })
+      value,
+    }),
   )
   return {
     _custom: {
@@ -252,9 +291,9 @@ export function getCustomMapDetails (val) {
       value: list,
       readOnly: true,
       fields: {
-        abstract: true
-      }
-    }
+        abstract: true,
+      },
+    },
   }
 }
 
@@ -275,8 +314,8 @@ export function getCustomSetDetails (val) {
       type: 'set',
       display: `Set[${list.length}]`,
       value: list,
-      readOnly: true
-    }
+      readOnly: true,
+    },
   }
 }
 
@@ -295,7 +334,7 @@ export function reviveSet (val) {
 function basename (filename, ext) {
   return path.basename(
     filename.replace(/^[a-zA-Z]:/, '').replace(/\\/g, '/'),
-    ext
+    ext,
   )
 }
 
@@ -326,10 +365,10 @@ export function getCustomComponentDefinitionDetails (def) {
       tooltip: 'Component definition',
       ...def.__file
         ? {
-            file: def.__file
+            file: def.__file,
           }
-        : {}
-    }
+        : {},
+    },
   }
 }
 
@@ -346,33 +385,44 @@ export function getCustomFunctionDetails (func: Function): CustomState {
   // Trim any excess whitespace from the argument string
   const match = matches && matches[0]
   const args = typeof match === 'string'
-    ? `(${match.substr(1, match.length - 2).split(',').map(a => a.trim()).join(', ')})`
+    ? match
     : '(?)'
   const name = typeof func.name === 'string' ? func.name : ''
   return {
     _custom: {
       type: 'function',
-      display: `<span>f</span> ${escape(name)}${args}`,
-      _reviveId: reviveCache.cache(func)
-    }
+      display: `<span style="opacity:.5;">function</span> ${escape(name)}${args}`,
+      tooltip: string.trim() ? `<pre>${string}</pre>` : null,
+      _reviveId: reviveCache.cache(func),
+    },
   }
 }
 
 export function getCustomHTMLElementDetails (value: HTMLElement): CustomState {
-  return {
-    _custom: {
-      type: 'HTMLElement',
-      display: `<span class="opacity-30">&lt;</span><span class="text-blue-500">${value.tagName.toLowerCase()}</span><span class="opacity-30">&gt;</span>`,
-      value: namedNodeMapToObject(value.attributes),
-      actions: [
-        {
-          icon: 'input',
-          tooltip: 'Log element to console',
-          action: () => {
-            console.log(value)
-          }
-        }
-      ]
+  try {
+    return {
+      _custom: {
+        type: 'HTMLElement',
+        display: `<span class="opacity-30">&lt;</span><span class="text-blue-500">${value.tagName.toLowerCase()}</span><span class="opacity-30">&gt;</span>`,
+        value: namedNodeMapToObject(value.attributes),
+        actions: [
+          {
+            icon: 'input',
+            tooltip: 'Log element to console',
+            action: () => {
+              // eslint-disable-next-line no-console
+              console.log(value)
+            },
+          },
+        ],
+      },
+    }
+  } catch (e) {
+    return {
+      _custom: {
+        type: 'HTMLElement',
+        display: `<span class="text-blue-500">${String(value)}</span>`,
+      },
     }
   }
 }
@@ -405,15 +455,15 @@ export function getCustomRefDetails (instance, key, ref) {
           (ref.id ? ` <span class="attr-title">id</span>="${ref.id}"` : '') +
           (ref.className ? ` <span class="attr-title">class</span>="${ref.className}"` : '') + '&gt;',
         uid: instance.__VUE_DEVTOOLS_UID__,
-        type: 'reference'
-      }
+        type: 'reference',
+      },
     }
   }
   return {
     type: '$refs',
     key: key,
     value,
-    editable: false
+    editable: false,
   }
 }
 
@@ -457,7 +507,7 @@ export function revive (val) {
     return Symbol.for(string)
   } else if (specialTypeRE.test(val)) {
     const [, type, string,, details] = specialTypeRE.exec(val)
-    const result = new window[type](string)
+    const result = new target[type](string)
     if (type === 'Error' && details) {
       result.stack = details
     }
@@ -626,20 +676,7 @@ export function sortByKey (state) {
   })
 }
 
-export function set (object, path, value, cb = null) {
-  const sections = Array.isArray(path) ? path : path.split('.')
-  while (sections.length > 1) {
-    object = object[sections.shift()]
-  }
-  const field = sections[0]
-  if (cb) {
-    cb(object, field, value)
-  } else {
-    object[field] = value
-  }
-}
-
-export function get (object, path) {
+export function simpleGet (object, path) {
   const sections = Array.isArray(path) ? path : path.split('.')
   for (let i = 0; i < sections.length; i++) {
     object = object[sections[i]]
@@ -648,19 +685,6 @@ export function get (object, path) {
     }
   }
   return object
-}
-
-export function has (object, path, parent = false) {
-  if (typeof object === 'undefined') {
-    return false
-  }
-
-  const sections = Array.isArray(path) ? path.slice() : path.split('.')
-  const size = !parent ? 1 : 2
-  while (object && sections.length > size) {
-    object = object[sections.shift()]
-  }
-  return object != null && Object.prototype.hasOwnProperty.call(object, sections[0])
 }
 
 export function focusInput (el) {
@@ -682,7 +706,7 @@ export function openInEditor (file) {
       } else {
         console.log('%c' + msg, 'color:red')
       }
-      console.log('Check the setup of your project, see https://github.com/vuejs/vue-devtools/blob/master/docs/open-in-editor.md')
+      console.log('Check the setup of your project, see https://devtools.vuejs.org/guide/open-in-editor.html')
     }
   })`
   if (isChrome) {
@@ -697,7 +721,7 @@ const ESC = {
   '<': '&lt;',
   '>': '&gt;',
   '"': '&quot;',
-  '&': '&amp;'
+  '&': '&amp;',
 }
 
 export function escape (s) {
@@ -709,9 +733,18 @@ function escapeChar (a) {
 }
 
 export function copyToClipboard (state) {
+  let text: string
+
+  if (typeof state !== 'object') {
+    text = String(state)
+  } else {
+    text = stringify(state, 'user')
+  }
+
+  // @TODO navigator.clipboard is buggy in extensions
   if (typeof document === 'undefined') return
   const dummyTextArea = document.createElement('textarea')
-  dummyTextArea.textContent = stringify(state)
+  dummyTextArea.textContent = text
   document.body.appendChild(dummyTextArea)
   dummyTextArea.select()
   document.execCommand('copy')

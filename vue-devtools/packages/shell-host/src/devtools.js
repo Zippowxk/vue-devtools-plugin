@@ -1,5 +1,7 @@
+// import Vue from 'vue'
+// import DevIframe from './DevIframe.vue'
+import { Bridge } from '@vue-devtools/shared-utils'
 import { initDevTools } from '@front'
-import { Bridge } from '@utils/bridge'
 
 const target = document.getElementById('target')
 const targetWindow = target.contentWindow
@@ -18,7 +20,7 @@ target.onload = () => {
             targetWindow.parent.addEventListener('message', evt => fn(evt.data))
           },
           send (data) {
-            console.log('devtools -> backend', data)
+            // console.log('devtools -> backend', data)
             targetWindow.postMessage(data, '*')
           }
         }))

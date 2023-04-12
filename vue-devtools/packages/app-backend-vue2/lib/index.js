@@ -5,50 +5,54 @@ const app_backend_api_1 = require("@vue-devtools/app-backend-api");
 const shared_utils_1 = require("@vue-devtools/shared-utils");
 const data_1 = require("./components/data");
 const el_1 = require("./components/el");
+const perf_js_1 = require("./components/perf.js");
 const tree_1 = require("./components/tree");
+const update_tracking_js_1 = require("./components/update-tracking.js");
 const util_1 = require("./components/util");
 const events_1 = require("./events");
 const plugin_1 = require("./plugin");
-exports.backend = {
+exports.backend = (0, app_backend_api_1.defineBackend)({
     frameworkVersion: 2,
-    availableFeatures: [
-        app_backend_api_1.BuiltinBackendFeature.COMPONENTS,
-        app_backend_api_1.BuiltinBackendFeature.FLUSH
+    features: [
+        app_backend_api_1.BuiltinBackendFeature.FLUSH,
     ],
     setup(api) {
         api.on.getAppRecordName(payload => {
             if (payload.app.name) {
                 payload.name = payload.app.name;
             }
+            else if (payload.app.$options.name) {
+                payload.name = payload.app.$options.name;
+            }
         });
         api.on.getAppRootInstance(payload => {
             payload.root = payload.app;
         });
-        api.on.walkComponentTree((payload, ctx) => {
-            payload.componentTreeData = tree_1.walkTree(payload.componentInstance, payload.filter, ctx);
+        api.on.walkComponentTree(async (payload, ctx) => {
+            payload.componentTreeData = await (0, tree_1.walkTree)(payload.componentInstance, payload.filter, payload.recursively, api, ctx);
         });
         api.on.walkComponentParents((payload, ctx) => {
-            payload.parentInstances = tree_1.getComponentParents(payload.componentInstance, ctx);
+            payload.parentInstances = (0, tree_1.getComponentParents)(payload.componentInstance, api, ctx);
         });
         api.on.inspectComponent(payload => {
             injectToUtils();
-            payload.instanceData = data_1.getInstanceDetails(payload.componentInstance);
+            payload.instanceData = (0, data_1.getInstanceDetails)(payload.componentInstance);
         });
         api.on.getComponentBounds(payload => {
-            payload.bounds = el_1.getInstanceOrVnodeRect(payload.componentInstance);
+            payload.bounds = (0, el_1.getInstanceOrVnodeRect)(payload.componentInstance);
         });
         api.on.getComponentName(payload => {
             const instance = payload.componentInstance;
-            payload.name = instance.fnContext ? shared_utils_1.getComponentName(instance.fnOptions) : util_1.getInstanceName(instance);
+            payload.name = instance.fnContext ? (0, shared_utils_1.getComponentName)(instance.fnOptions) : (0, util_1.getInstanceName)(instance);
         });
         api.on.getElementComponent(payload => {
-            payload.componentInstance = el_1.findRelatedComponent(payload.element);
+            payload.componentInstance = (0, el_1.findRelatedComponent)(payload.element);
         });
         api.on.editComponentState(payload => {
-            data_1.editState(payload);
+            (0, data_1.editState)(payload, api.stateEditor);
         });
         api.on.getComponentRootElements(payload => {
-            payload.rootElements = [payload.componentInstance.$el];
+            payload.rootElements = (0, el_1.getRootElementsFromComponentInstance)(payload.componentInstance);
         });
         api.on.getComponentDevtoolsOptions(payload => {
             payload.options = payload.componentInstance.$options.devtools;
@@ -61,15 +65,32 @@ exports.backend = {
         });
     },
     setupApp(api, appRecord) {
-        injectToUtils();
         const { Vue } = appRecord.options.meta;
         const app = appRecord.options.app;
-        events_1.wrapVueForEvents(app, Vue, api.ctx);
-        plugin_1.setupPlugin(api, app);
-    }
-};
+        // State editor overrides
+        api.stateEditor.createDefaultSetCallback = state => {
+            return (obj, field, value) => {
+                if (state.remove || state.newKey)
+                    Vue.delete(obj, field);
+                if (!state.remove)
+                    Vue.set(obj, state.newKey || field, value);
+            };
+        };
+        // Utils
+        injectToUtils();
+        (0, events_1.wrapVueForEvents)(app, Vue, api.ctx);
+        // Plugin
+        (0, plugin_1.setupPlugin)(api, app, Vue);
+        // Perf
+        (0, perf_js_1.initPerf)(api, app, Vue);
+        // Update tracking
+        (0, update_tracking_js_1.initUpdateTracking)(api, Vue);
+    },
+});
+// @TODO refactor
 function injectToUtils() {
     shared_utils_1.backendInjections.getCustomInstanceDetails = data_1.getCustomInstanceDetails;
+    shared_utils_1.backendInjections.getCustomObjectDetails = () => undefined;
     shared_utils_1.backendInjections.instanceMap = tree_1.instanceMap;
     shared_utils_1.backendInjections.isVueInstance = val => val._isVue;
 }

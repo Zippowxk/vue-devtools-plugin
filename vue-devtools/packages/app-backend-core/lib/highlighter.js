@@ -32,15 +32,15 @@ function createOverlay() {
 // Use a job queue to preserve highlight/unhighlight calls order
 // This prevents "sticky" highlights that are not removed because highlight is async
 const jobQueue = new queue_1.JobQueue();
-async function highlight(instance, ctx) {
-    await jobQueue.queue(async () => {
+async function highlight(instance, backend, ctx) {
+    await jobQueue.queue('highlight', async () => {
         if (!instance)
             return;
-        const bounds = await ctx.api.getComponentBounds(instance);
+        const bounds = await backend.api.getComponentBounds(instance);
         if (bounds) {
             createOverlay();
             // Name
-            const name = (await ctx.api.getComponentName(instance)) || 'Anonymous';
+            const name = (await backend.api.getComponentName(instance)) || 'Anonymous';
             const pre = document.createElement('span');
             pre.style.opacity = '0.6';
             pre.innerText = '<';
@@ -64,12 +64,12 @@ async function highlight(instance, ctx) {
             currentInstance = instance;
             await showOverlay(bounds, [pre, text, post, size]);
         }
-        startUpdateTimer(ctx);
+        startUpdateTimer(backend, ctx);
     });
 }
 exports.highlight = highlight;
 async function unHighlight() {
-    await jobQueue.queue(async () => {
+    await jobQueue.queue('unHighlight', async () => {
         var _a, _b;
         (_a = overlay === null || overlay === void 0 ? void 0 : overlay.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(overlay);
         (_b = overlayContent === null || overlayContent === void 0 ? void 0 : overlayContent.parentNode) === null || _b === void 0 ? void 0 : _b.removeChild(overlayContent);
@@ -94,7 +94,7 @@ function positionOverlay({ width = 0, height = 0, top = 0, left = 0 }) {
     overlay.style.left = Math.round(left) + 'px';
     overlay.style.top = Math.round(top) + 'px';
 }
-function positionOverlayContent({ wifth = 0, height = 0, top = 0, left = 0 }) {
+function positionOverlayContent({ height = 0, top = 0, left = 0 }) {
     // Content position (prevents overflow)
     const contentWidth = overlayContent.offsetWidth;
     const contentHeight = overlayContent.offsetHeight;
@@ -118,9 +118,9 @@ function positionOverlayContent({ wifth = 0, height = 0, top = 0, left = 0 }) {
     overlayContent.style.left = ~~contentLeft + 'px';
     overlayContent.style.top = ~~contentTop + 'px';
 }
-async function updateOverlay(ctx) {
+async function updateOverlay(backend, ctx) {
     if (currentInstance) {
-        const bounds = await ctx.api.getComponentBounds(currentInstance);
+        const bounds = await backend.api.getComponentBounds(currentInstance);
         if (bounds) {
             const sizeEl = overlayContent.children.item(3);
             const widthEl = sizeEl.childNodes[0];
@@ -133,11 +133,11 @@ async function updateOverlay(ctx) {
     }
 }
 let updateTimer;
-function startUpdateTimer(ctx) {
+function startUpdateTimer(backend, ctx) {
     stopUpdateTimer();
     updateTimer = setInterval(() => {
-        jobQueue.queue(async () => {
-            await updateOverlay(ctx);
+        jobQueue.queue('updateOverlay', async () => {
+            await updateOverlay(backend, ctx);
         });
     }, 1000 / 30); // 30fps
 }

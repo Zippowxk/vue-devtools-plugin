@@ -1,9 +1,9 @@
-import { ref, computed } from '@vue/composition-api'
+import { ref, computed } from 'vue'
 
 export const darkMode = ref(false)
 
 export function useDarkMode () {
   return {
-    darkMode: computed(() => darkMode.value)
+    darkMode: computed(() => darkMode.value),
   }
 }

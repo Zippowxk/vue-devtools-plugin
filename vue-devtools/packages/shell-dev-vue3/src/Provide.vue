@@ -5,6 +5,9 @@
 <script>
 import { provide, inject } from 'vue'
 
+const symbolForInject = Symbol('inject')
+const symbolForSetup = Symbol('setup')
+
 export default {
   components: {
     Inject: {
@@ -16,30 +19,33 @@ export default {
             renamed: 'injectedData',
             missing: {
               from: 'missingInjected',
-              default: () => ({ answer: 42 })
-            }
+              default: () => ({ answer: 42 }),
+            },
           },
-          template: '<div>nested inject: {{ renamed }} missing: {{ missing }}</div>'
-        }
+          template: '<div>nested inject: {{ renamed }} missing: {{ missing }}</div>',
+        },
       },
-      inject: ['injectedData'],
+      inject: ['injectedData', symbolForInject],
       setup () {
         return {
-          comingFromSetup: inject('fromSetup')
+          comingFromSetup: inject('fromSetup'),
+          comingFromSymbol: inject(symbolForSetup),
         }
       },
-      template: '<div>injected: {{ injectedData }} | {{ comingFromSetup }}<NestedInject /></div>'
-    }
+      template: '<div>injected: {{ injectedData }} | {{ comingFromSetup }}<NestedInject /></div>',
+    },
   },
 
   provide () {
     return {
-      injectedData: 'bar'
+      injectedData: 'bar',
+      [symbolForInject]: 'foo',
     }
   },
 
   setup () {
     provide('fromSetup', 'Setup!!')
-  }
+    provide(symbolForSetup, 'Symbol from Setup')
+  },
 }
 </script>

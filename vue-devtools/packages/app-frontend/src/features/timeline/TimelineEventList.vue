@@ -2,9 +2,8 @@
 import EmptyPane from '@front/features/layout/EmptyPane.vue'
 import TimelineEventListItem from './TimelineEventListItem.vue'
 
-import { computed, ref, watch, defineComponent } from '@vue/composition-api'
+import { computed, ref, watch, defineComponent } from 'vue'
 import { getStorage, setStorage } from '@vue-devtools/shared-utils'
-import Defer from '@front/mixins/defer'
 import { useRoute, useRouter } from '@front/util/router'
 import { onKeyDown } from '@front/util/keyboard'
 import { useInspectedEvent, useSelectedEvent, selectEvent, useLayers } from './composable'
@@ -16,28 +15,24 @@ const STORAGE_TAB_ID = 'timeline.event-list.tab-id'
 export default defineComponent({
   components: {
     TimelineEventListItem,
-    EmptyPane
+    EmptyPane,
   },
-
-  mixins: [
-    Defer()
-  ],
 
   setup () {
     const route = useRoute()
     const router = useRouter()
 
     const {
-      selectedLayer
+      selectedLayer,
     } = useLayers()
 
     const {
       selectedEvent,
-      selectedGroupEvents
+      selectedGroupEvents,
     } = useSelectedEvent()
 
     const {
-      inspectedEvent
+      inspectedEvent,
     } = useInspectedEvent()
 
     // Tabs
@@ -49,10 +44,10 @@ export default defineComponent({
         router.push({
           query: {
             ...route.value.query,
-            tabId: value
-          }
+            tabId: value,
+          },
         })
-      }
+      },
     })
 
     if (!route.value.query.tabId) {
@@ -68,7 +63,7 @@ export default defineComponent({
     const displayedEvents = computed(() => {
       switch (tabId.value) {
         case 'group':
-          return selectedGroupEvents.value
+          return selectedGroupEvents.value ?? []
         case 'all':
         default:
           return selectedLayer.value?.events ?? []
@@ -80,17 +75,12 @@ export default defineComponent({
     const filter = ref('')
 
     const filteredEvents = computed(() => {
-      // Prevent crash on the filteredEvents.length watcher
-      if (!selectedEvent.value) {
-        return []
-      }
-
       const rawFilter = filter.value.trim()
       if (rawFilter) {
         const reg = new RegExp(rawFilter, 'i')
         return displayedEvents.value.filter(event =>
           (event.title && reg.test(event.title)) ||
-          (event.subtitle && reg.test(event.subtitle))
+          (event.subtitle && reg.test(event.subtitle)),
         )
       } else {
         return displayedEvents.value
@@ -105,7 +95,7 @@ export default defineComponent({
 
     function onScroll () {
       const scrollerEl = scroller.value.$el
-      isAtScrollBottom.value = scrollerEl.scrollTop + scrollerEl.clientHeight >= scrollerEl.scrollHeight - 100
+      isAtScrollBottom.value = scrollerEl.scrollTop + scrollerEl.clientHeight >= scrollerEl.scrollHeight - 400
     }
 
     watch(scroller, value => {
@@ -115,7 +105,7 @@ export default defineComponent({
     }, { immediate: true })
 
     watch(tabId, () => {
-      scrollToInspectedEvent()
+      checkScrollToInspectedEvent()
     }, { immediate: true })
 
     function scrollToInspectedEvent () {
@@ -156,8 +146,10 @@ export default defineComponent({
     function scrollToBottom () {
       if (!scroller.value) return
 
-      const scrollerEl = scroller.value.$el
-      scrollerEl.scrollTop = scrollerEl.scrollHeight
+      requestAnimationFrame(() => {
+        const scrollerEl = scroller.value.$el
+        scrollerEl.scrollTop = scrollerEl.scrollHeight
+      })
     }
 
     // Important: Watch this after the scroll to inspect event watchers
@@ -200,23 +192,24 @@ export default defineComponent({
       filter,
       filteredEvents,
       itemHeight,
-      inspectedEvent,
+      isAtScrollBottom,
       inspectEvent,
       selectEvent,
-      onScroll
+      onScroll,
+      scrollToBottom,
     }
-  }
+  },
 })
 </script>
 
 <template>
   <div
-    v-if="selectedEvent && selectedLayer"
-    class="h-full flex flex-col"
+    v-if="selectedLayer && (filteredEvents.length || filter.length)"
+    class="h-full flex flex-col relative"
   >
     <div class="flex-none flex flex-col items-stretch border-gray-200 dark:border-gray-800 border-b">
       <VueGroup
-        v-if="selectedEvent.group"
+        v-if="selectedEvent && selectedEvent.group"
         v-model="tabId"
         indicator
         class="accent extend border-gray-200 dark:border-gray-800 border-b"
@@ -246,7 +239,7 @@ export default defineComponent({
       :items="filteredEvents"
       :item-size="itemHeight"
       class="flex-1"
-      @scroll.native="onScroll()"
+      @scroll.native.passive="onScroll()"
     >
       <template #default="{ item: event }">
         <TimelineEventListItem
@@ -257,6 +250,14 @@ export default defineComponent({
         />
       </template>
     </RecycleScroller>
+
+    <VueButton
+      v-if="!isAtScrollBottom"
+      v-tooltip="'Scroll to bottom'"
+      icon-left="keyboard_arrow_down"
+      class="icon-button absolute bottom-1 right-4 rounded-full shadow-md"
+      @click="scrollToBottom()"
+    />
   </div>
 
   <EmptyPane

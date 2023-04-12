@@ -14,9 +14,10 @@ function getAppRecord(instance) {
 }
 exports.getAppRecord = getAppRecord;
 function isFragment(instance) {
+    var _a;
     const appRecord = getAppRecord(instance);
     if (appRecord) {
-        return appRecord.options.types.Fragment === instance.subTree.type;
+        return appRecord.options.types.Fragment === ((_a = instance.subTree) === null || _a === void 0 ? void 0 : _a.type);
     }
 }
 exports.isFragment = isFragment;
@@ -49,13 +50,13 @@ function saveComponentName(instance, key) {
     return key;
 }
 function getComponentTypeName(options) {
-    const name = options.name || options._componentTag || options.__vdevtools_guessedName;
+    const name = options.name || options._componentTag || options.__vdevtools_guessedName || options.__name;
     if (name) {
         return name;
     }
     const file = options.__file; // injected by vue-loader
     if (file) {
-        return shared_utils_1.classify(util_1.basename(file, '.vue'));
+        return (0, shared_utils_1.classify)((0, util_1.basename)(file, '.vue'));
     }
 }
 /**
@@ -63,8 +64,9 @@ function getComponentTypeName(options) {
  * @param {Vue} instance
  */
 function getUniqueComponentId(instance, ctx) {
-    const instanceId = instance === ctx.currentAppRecord.rootInstance ? 'root' : instance.uid;
-    return `${ctx.currentAppRecord.id}:${instanceId}`;
+    const appId = instance.appContext.app.__VUE_DEVTOOLS_APP_RECORD_ID__;
+    const instanceId = instance === instance.root ? 'root' : instance.uid;
+    return `${appId}:${instanceId}`;
 }
 exports.getUniqueComponentId = getUniqueComponentId;
 function getRenderKey(value) {

@@ -1,26 +1,35 @@
 <script lang="ts">
-import PluginSourceIcon from '@front/features/plugin/PluginSourceIcon.vue'
-import AppHeaderLogo from './AppHeaderLogo.vue'
 import AppHistoryNav from './AppHistoryNav.vue'
-import AppSelect from './AppSelect.vue'
+import AppSelect from '../apps/AppSelect.vue'
 import AppHeaderSelect from './AppHeaderSelect.vue'
-import AppMainMenu from './AppMainMenu.vue'
+import PluginSourceIcon from '@front/features/plugin/PluginSourceIcon.vue'
+import PluginSourceDescription from '../plugin/PluginSourceDescription.vue'
 
-import { computed, ref, watch, defineComponent } from '@vue/composition-api'
+import { computed, ref, watch, defineComponent } from 'vue'
+import type { RawLocation, Route } from 'vue-router'
 import { BridgeEvents } from '@vue-devtools/shared-utils'
 import { useRoute } from '@front/util/router'
 import { useBridge } from '@front/features/bridge'
 import { useInspectors } from '@front/features/inspector/custom/composable'
 import { useTabs } from './tabs'
+import { showAppsSelector } from './header'
+import { useOrientation } from '../layout/orientation'
+
+interface HeaderRoute {
+  icon: string
+  label: string
+  targetRoute: RawLocation
+  matchRoute: (route: Route) => boolean
+  pluginId?: string
+}
 
 export default defineComponent({
   components: {
-    AppHeaderLogo,
     AppHistoryNav,
     AppSelect,
     AppHeaderSelect,
-    AppMainMenu,
-    PluginSourceIcon
+    PluginSourceIcon,
+    PluginSourceDescription,
   },
 
   setup () {
@@ -30,27 +39,33 @@ export default defineComponent({
 
     const { inspectors: customInspectors } = useInspectors()
 
-    const inspectorRoutes = computed(() => [
+    const headerRoutes = computed(() => ([
       {
         icon: 'device_hub',
         label: 'Components',
         targetRoute: { name: 'inspector-components' },
-        matchRoute: route => route.matched.some(m => m.name === 'inspector-components')
-      }
-    ].concat(customInspectors.value.map(i => ({
+        matchRoute: route => route.matched.some(m => m.name === 'inspector-components'),
+      },
+      {
+        icon: 'line_style',
+        label: 'Timeline',
+        targetRoute: { name: 'timeline' },
+        matchRoute: route => route.matched.some(m => m.name === 'timeline'),
+      },
+    ] as HeaderRoute[]).concat(customInspectors.value.map(i => ({
       icon: i.icon || 'tab',
       label: i.label,
       pluginId: i.pluginId,
       targetRoute: { name: 'custom-inspector', params: { inspectorId: i.id } },
-      matchRoute: route => route.params.inspectorId === i.id
+      matchRoute: route => route.params.inspectorId === i.id,
     }))))
 
-    const currentInspectorRoute = computed(() => inspectorRoutes.value.find(r => r.matchRoute(route.value)))
+    const currentHeaderRoute = computed(() => headerRoutes.value.find(r => r.matchRoute(route.value)))
 
-    const lastInspectorRoute = ref(null)
-    watch(currentInspectorRoute, value => {
+    const lastHeaderRoute = ref(null)
+    watch(currentHeaderRoute, value => {
       if (value) {
-        lastInspectorRoute.value = value
+        lastHeaderRoute.value = value
       }
     })
 
@@ -61,38 +76,38 @@ export default defineComponent({
     watch(currentTab, value => {
       bridge.send(BridgeEvents.TO_BACK_TAB_SWITCH, value)
     }, {
-      immediate: true
+      immediate: true,
     })
 
+    // Orientation
+
+    const { orientation } = useOrientation()
+
     return {
-      inspectorRoutes,
-      currentInspectorRoute,
-      lastInspectorRoute
+      headerRoutes,
+      currentHeaderRoute,
+      lastHeaderRoute,
+      showAppsSelector,
+      orientation,
     }
-  }
+  },
 })
 </script>
 
 <template>
-  <div class="flex items-center space-x-2 px-2 h-8">
-    <AppHeaderLogo />
-
+  <div class="flex items-center space-x-2 px-2 h-8 box-content">
     <AppHistoryNav />
 
-    <AppSelect />
+    <template v-if="showAppsSelector">
+      <AppSelect />
 
-    <img src="~@front/assets/breadcrumb-separator.svg">
-
-    <AppMainMenu
-      :last-inspector-route="lastInspectorRoute"
-    />
-
-    <template v-if="currentInspectorRoute">
       <img src="~@front/assets/breadcrumb-separator.svg">
+    </template>
 
+    <template v-if="orientation === 'portrait' || headerRoutes.length * 200 > $responsive.width - 250">
       <AppHeaderSelect
-        :items="inspectorRoutes"
-        :selected-item="currentInspectorRoute"
+        :items="headerRoutes"
+        :selected-item="currentHeaderRoute"
         @select="route => $router.push(route.targetRoute)"
       >
         <template #default="{ item }">
@@ -106,6 +121,36 @@ export default defineComponent({
           </div>
         </template>
       </AppHeaderSelect>
+    </template>
+
+    <template v-else>
+      <VueGroup
+        :value="currentHeaderRoute"
+        class="primary"
+        indicator
+        @update="route => $router.push(route.targetRoute)"
+      >
+        <VTooltip
+          v-for="(item, index) of headerRoutes"
+          :key="index"
+          :disabled="!item.pluginId"
+          class="leading-none"
+        >
+          <VueGroupButton
+            :value="item"
+            :icon-left="item.icon"
+            class="flat"
+          >
+            {{ item.label }}
+          </VueGroupButton>
+
+          <template #popper>
+            <PluginSourceDescription
+              :plugin-id="item.pluginId"
+            />
+          </template>
+        </VTooltip>
+      </VueGroup>
     </template>
 
     <div class="flex-1" />
@@ -159,7 +204,7 @@ export default defineComponent({
         </VueDropdownButton>
 
         <VueDropdownButton
-          href="https://new-issue.vuejs.org/?repo=vuejs/vue-devtools"
+          href="https://github.com/vuejs/devtools/issues/new/choose"
           target="_blank"
           icon-left="bug_report"
           icon-right="open_in_new"

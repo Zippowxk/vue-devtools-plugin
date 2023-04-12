@@ -1,24 +1,24 @@
 <script lang="ts">
-import { ref, computed, watch, defineComponent } from '@vue/composition-api'
-import SharedData from '@utils/shared-data'
+import { ref, computed, watch, defineComponent } from 'vue'
+import { SharedData } from '@vue-devtools/shared-utils'
 import { useOrientation } from '@front/features/layout/orientation'
 
 export default defineComponent({
   props: {
     items: {
       type: Array,
-      required: true
+      required: true,
     },
 
     selectedItem: {
       type: Object,
-      default: () => ({})
+      default: () => ({}),
     },
 
     optionIcon: {
       type: String,
-      default: null
-    }
+      default: null,
+    },
   },
 
   setup (props, { emit }) {
@@ -148,9 +148,9 @@ export default defineComponent({
       toggle,
       select,
       orientation,
-      onMouseWheel
+      onMouseWheel,
     }
-  }
+  },
 })
 </script>
 
@@ -197,6 +197,8 @@ export default defineComponent({
         @mouseleave="queueClose()"
         @wheel="onMouseWheel"
       >
+        <slot name="before" />
+
         <VueDropdownButton
           v-for="(item, index) of items"
           :key="index"

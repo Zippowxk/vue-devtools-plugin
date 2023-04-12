@@ -9,7 +9,7 @@ export interface AppRecordOptions {
     meta?: any;
 }
 export interface AppRecord {
-    id: number;
+    id: string;
     name: string;
     options: AppRecordOptions;
     backend: DevtoolsBackend;
@@ -28,7 +28,7 @@ export interface AppRecord {
  * Used in the frontend
  */
 export interface SimpleAppRecord {
-    id: number;
+    id: string;
     name: string;
     version: string;
     iframe: string;

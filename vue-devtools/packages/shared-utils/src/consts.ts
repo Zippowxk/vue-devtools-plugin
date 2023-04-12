@@ -18,6 +18,10 @@ export enum BridgeEvents {
   /** Tab was switched */
   TO_BACK_TAB_SWITCH = 'b:tab:switch',
   TO_BACK_LOG = 'b:log',
+  /** Reconnected after background script is terminated (idle) */
+  TO_FRONT_RECONNECTED = 'f:reconnected',
+  /** Change app title (electron) */
+  TO_FRONT_TITLE = 'f:title',
 
   // Apps
   /** App was registered */
@@ -28,6 +32,7 @@ export enum BridgeEvents {
   TO_FRONT_APP_REMOVE = 'f:app:remove',
   TO_BACK_APP_SELECT = 'b:app:select',
   TO_FRONT_APP_SELECTED = 'f:app:selected',
+  TO_BACK_SCAN_LEGACY_APPS = 'b:app:scan-legacy',
 
   // Components
   TO_BACK_COMPONENT_TREE = 'b:component:tree',
@@ -50,6 +55,7 @@ export enum BridgeEvents {
   TO_FRONT_COMPONENT_INSPECT_DOM = 'f:component:inspect-dom',
   TO_BACK_COMPONENT_RENDER_CODE = 'b:component:render-code',
   TO_FRONT_COMPONENT_RENDER_CODE = 'f:component:render-code',
+  TO_FRONT_COMPONENT_UPDATED = 'f:component:updated',
 
   // Timeline
   TO_FRONT_TIMELINE_EVENT = 'f:timeline:event',
@@ -62,11 +68,15 @@ export enum BridgeEvents {
   TO_FRONT_TIMELINE_EVENT_DATA = 'f:timeline:event-data',
   TO_BACK_TIMELINE_LAYER_LOAD_EVENTS = 'b:timeline:layer-load-events',
   TO_FRONT_TIMELINE_LAYER_LOAD_EVENTS = 'f:timeline:layer-load-events',
+  TO_BACK_TIMELINE_LOAD_MARKERS = 'b:timeline:load-markers',
+  TO_FRONT_TIMELINE_LOAD_MARKERS = 'f:timeline:load-markers',
+  TO_FRONT_TIMELINE_MARKER = 'f:timeline:marker',
 
   // Plugins
   TO_BACK_DEVTOOLS_PLUGIN_LIST = 'b:devtools-plugin:list',
   TO_FRONT_DEVTOOLS_PLUGIN_LIST = 'f:devtools-plugin:list',
   TO_FRONT_DEVTOOLS_PLUGIN_ADD = 'f:devtools-plugin:add',
+  TO_BACK_DEVTOOLS_PLUGIN_SETTING_UPDATED = 'b:devtools-plugin:setting-updated',
 
   // Custom inspectors
   TO_BACK_CUSTOM_INSPECTOR_LIST = 'b:custom-inspector:list',
@@ -78,6 +88,7 @@ export enum BridgeEvents {
   TO_FRONT_CUSTOM_INSPECTOR_STATE = 'f:custom-inspector:state',
   TO_BACK_CUSTOM_INSPECTOR_EDIT_STATE = 'b:custom-inspector:edit-state',
   TO_BACK_CUSTOM_INSPECTOR_ACTION = 'b:custom-inspector:action',
+  TO_BACK_CUSTOM_INSPECTOR_NODE_ACTION = 'b:custom-inspector:node-action',
   TO_FRONT_CUSTOM_INSPECTOR_SELECT_NODE = 'f:custom-inspector:select-node',
 
   // Custom state
@@ -109,8 +120,17 @@ export enum HookEvents {
   CUSTOM_INSPECTOR_SELECT_NODE = 'custom-inspector:select-node',
   PERFORMANCE_START = 'perf:start',
   PERFORMANCE_END = 'perf:end',
+  PLUGIN_SETTINGS_SET = 'plugin:settings:set',
   /**
    * @deprecated
    */
   FLUSH = 'flush',
+  /**
+   * @deprecated
+   */
+  TRACK_UPDATE = '_track-update',
+  /**
+   * @deprecated
+   */
+  FLASH_UPDATE = '_flash-update',
 }

@@ -22,6 +22,10 @@ var BridgeEvents;
     /** Tab was switched */
     BridgeEvents["TO_BACK_TAB_SWITCH"] = "b:tab:switch";
     BridgeEvents["TO_BACK_LOG"] = "b:log";
+    /** Reconnected after background script is terminated (idle) */
+    BridgeEvents["TO_FRONT_RECONNECTED"] = "f:reconnected";
+    /** Change app title (electron) */
+    BridgeEvents["TO_FRONT_TITLE"] = "f:title";
     // Apps
     /** App was registered */
     BridgeEvents["TO_FRONT_APP_ADD"] = "f:app:add";
@@ -31,6 +35,7 @@ var BridgeEvents;
     BridgeEvents["TO_FRONT_APP_REMOVE"] = "f:app:remove";
     BridgeEvents["TO_BACK_APP_SELECT"] = "b:app:select";
     BridgeEvents["TO_FRONT_APP_SELECTED"] = "f:app:selected";
+    BridgeEvents["TO_BACK_SCAN_LEGACY_APPS"] = "b:app:scan-legacy";
     // Components
     BridgeEvents["TO_BACK_COMPONENT_TREE"] = "b:component:tree";
     BridgeEvents["TO_FRONT_COMPONENT_TREE"] = "f:component:tree";
@@ -52,6 +57,7 @@ var BridgeEvents;
     BridgeEvents["TO_FRONT_COMPONENT_INSPECT_DOM"] = "f:component:inspect-dom";
     BridgeEvents["TO_BACK_COMPONENT_RENDER_CODE"] = "b:component:render-code";
     BridgeEvents["TO_FRONT_COMPONENT_RENDER_CODE"] = "f:component:render-code";
+    BridgeEvents["TO_FRONT_COMPONENT_UPDATED"] = "f:component:updated";
     // Timeline
     BridgeEvents["TO_FRONT_TIMELINE_EVENT"] = "f:timeline:event";
     BridgeEvents["TO_BACK_TIMELINE_LAYER_LIST"] = "b:timeline:layer-list";
@@ -63,10 +69,14 @@ var BridgeEvents;
     BridgeEvents["TO_FRONT_TIMELINE_EVENT_DATA"] = "f:timeline:event-data";
     BridgeEvents["TO_BACK_TIMELINE_LAYER_LOAD_EVENTS"] = "b:timeline:layer-load-events";
     BridgeEvents["TO_FRONT_TIMELINE_LAYER_LOAD_EVENTS"] = "f:timeline:layer-load-events";
+    BridgeEvents["TO_BACK_TIMELINE_LOAD_MARKERS"] = "b:timeline:load-markers";
+    BridgeEvents["TO_FRONT_TIMELINE_LOAD_MARKERS"] = "f:timeline:load-markers";
+    BridgeEvents["TO_FRONT_TIMELINE_MARKER"] = "f:timeline:marker";
     // Plugins
     BridgeEvents["TO_BACK_DEVTOOLS_PLUGIN_LIST"] = "b:devtools-plugin:list";
     BridgeEvents["TO_FRONT_DEVTOOLS_PLUGIN_LIST"] = "f:devtools-plugin:list";
     BridgeEvents["TO_FRONT_DEVTOOLS_PLUGIN_ADD"] = "f:devtools-plugin:add";
+    BridgeEvents["TO_BACK_DEVTOOLS_PLUGIN_SETTING_UPDATED"] = "b:devtools-plugin:setting-updated";
     // Custom inspectors
     BridgeEvents["TO_BACK_CUSTOM_INSPECTOR_LIST"] = "b:custom-inspector:list";
     BridgeEvents["TO_FRONT_CUSTOM_INSPECTOR_LIST"] = "f:custom-inspector:list";
@@ -77,6 +87,7 @@ var BridgeEvents;
     BridgeEvents["TO_FRONT_CUSTOM_INSPECTOR_STATE"] = "f:custom-inspector:state";
     BridgeEvents["TO_BACK_CUSTOM_INSPECTOR_EDIT_STATE"] = "b:custom-inspector:edit-state";
     BridgeEvents["TO_BACK_CUSTOM_INSPECTOR_ACTION"] = "b:custom-inspector:action";
+    BridgeEvents["TO_BACK_CUSTOM_INSPECTOR_NODE_ACTION"] = "b:custom-inspector:node-action";
     BridgeEvents["TO_FRONT_CUSTOM_INSPECTOR_SELECT_NODE"] = "f:custom-inspector:select-node";
     // Custom state
     BridgeEvents["TO_BACK_CUSTOM_STATE_ACTION"] = "b:custom-state:action";
@@ -107,9 +118,18 @@ var HookEvents;
     HookEvents["CUSTOM_INSPECTOR_SELECT_NODE"] = "custom-inspector:select-node";
     HookEvents["PERFORMANCE_START"] = "perf:start";
     HookEvents["PERFORMANCE_END"] = "perf:end";
+    HookEvents["PLUGIN_SETTINGS_SET"] = "plugin:settings:set";
     /**
      * @deprecated
      */
     HookEvents["FLUSH"] = "flush";
+    /**
+     * @deprecated
+     */
+    HookEvents["TRACK_UPDATE"] = "_track-update";
+    /**
+     * @deprecated
+     */
+    HookEvents["FLASH_UPDATE"] = "_flash-update";
 })(HookEvents = exports.HookEvents || (exports.HookEvents = {}));
 //# sourceMappingURL=consts.js.map

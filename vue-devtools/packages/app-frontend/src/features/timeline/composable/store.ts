@@ -1,4 +1,4 @@
-import { Ref, ref } from '@vue/composition-api'
+import { Ref, ref } from 'vue'
 import { ID } from '@vue/devtools-api'
 import * as PIXI from 'pixi.js-legacy'
 
@@ -17,7 +17,10 @@ export interface EventGroup {
   firstEvent: TimelineEvent
   lastEvent: TimelineEvent
   duration: number
+  nonReactiveDuration: number
   y: number
+  oldSize?: number
+  oldSelected?: boolean
 }
 
 export interface EventScreenshot {
@@ -29,20 +32,22 @@ export interface EventScreenshot {
 
 export interface TimelineEvent extends TimelineEventFromBackend {
   layer: Layer
-  appId: number | 'all'
+  appId: string | 'all'
   group: EventGroup
   screenshot: EventScreenshot
   container: PIXI.Container
   g: PIXI.Graphics
   groupG: PIXI.Graphics
-  groupT: PIXI.Text
+  groupT: PIXI.BitmapText
+  groupText: string
+  forcePositionUpdate?: boolean
 }
 
 export interface LayerFromBackend {
   id: string
   label: string
   color: number
-  appId?: number
+  appId?: string
   pluginId?: string
   groupsOnly?: boolean
   skipScreenshots?: boolean
@@ -54,9 +59,24 @@ export interface Layer extends LayerFromBackend {
   eventsMap: Record<TimelineEvent['id'], TimelineEvent>
   groups: EventGroup[]
   groupsMap: Record<EventGroup['id'], EventGroup>
+  groupPositionCache: Record<number, EventGroup[]>
   height: number
+  newHeight: number
   lastInspectedEvent: TimelineEvent
   loaded: boolean
+}
+
+export interface MarkerFromBackend {
+  id: string
+  appId: string
+  all?: boolean
+  time: number
+  label: string
+  color: number
+}
+
+export interface TimelineMarker extends MarkerFromBackend {
+  x: number
 }
 
 export const startTime = ref(0)
@@ -68,16 +88,19 @@ export const timelineIsEmpty = ref(true)
 
 export const cursorTime = ref<number>(null)
 
-export const layersPerApp = ref<{[appId: number]: Layer[]}>({})
-export const hiddenLayersPerApp = ref<{[appId: number]: Layer['id'][]}>({})
-export const vScrollPerApp = ref<{[appId: number]: number}>({})
+export const layersPerApp: Ref<{[appId: string]: Layer[]}> = ref({})
+export const hiddenLayersPerApp: Ref<{[appId: string]: Layer['id'][]}> = ref({})
+export const vScrollPerApp: Ref<{[appId: string]: number}> = ref({})
 
 export const selectedEvent: Ref<TimelineEvent> = ref(null)
 export const selectedLayer: Ref<Layer> = ref(null)
-export const hoverLayerId = ref<Layer['id']>(null)
+export const hoverLayerId: Ref<Layer['id']> = ref(null)
 
 export const inspectedEvent: Ref<TimelineEvent> = ref(null)
 export const inspectedEventData = ref(null)
-export const inspectedEventPendingId = ref<TimelineEvent['id']>(null)
+export const inspectedEventPendingId: Ref<TimelineEvent['id']> = ref(null)
 
-export const screenshots = ref<EventScreenshot[]>([])
+export const screenshots: Ref<EventScreenshot[]> = ref([])
+
+export const markersAllApps: Ref<TimelineMarker[]> = ref([])
+export const markersPerApp: Ref<{[appId: string]: TimelineMarker[]}> = ref({})

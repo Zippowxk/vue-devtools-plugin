@@ -1,16 +1,14 @@
-import { DevtoolsBackend, BuiltinBackendFeature } from '@vue-devtools/app-backend-api'
+import { defineBackend } from '@vue-devtools/app-backend-api'
 import { ComponentWalker } from './components/tree'
-import { editState, getInstanceDetails, getCustomInstanceDetails } from './components/data'
+import { editState, getInstanceDetails, getCustomInstanceDetails, getCustomObjectDetails } from './components/data'
 import { getInstanceName, getComponentInstances } from './components/util'
 import { getComponentInstanceFromElement, getInstanceOrVnodeRect, getRootElementsFromComponentInstance } from './components/el'
 import { backendInjections, HookEvents } from '@vue-devtools/shared-utils'
 
-export const backend: DevtoolsBackend = {
+export const backend = defineBackend({
   frameworkVersion: 3,
 
-  availableFeatures: [
-    BuiltinBackendFeature.COMPONENTS
-  ],
+  features: [],
 
   setup (api) {
     api.on.getAppRecordName(payload => {
@@ -28,17 +26,19 @@ export const backend: DevtoolsBackend = {
     })
 
     api.on.walkComponentTree(async (payload, ctx) => {
-      const walker = new ComponentWalker(payload.maxDepth, payload.filter, ctx)
+      const walker = new ComponentWalker(payload.maxDepth, payload.filter, payload.recursively, api, ctx)
       payload.componentTreeData = await walker.getComponentTree(payload.componentInstance)
     })
 
     api.on.walkComponentParents((payload, ctx) => {
-      const walker = new ComponentWalker(0, null, ctx)
+      const walker = new ComponentWalker(0, null, false, api, ctx)
       payload.parentInstances = walker.getComponentParents(payload.componentInstance)
     })
 
     api.on.inspectComponent((payload, ctx) => {
+      // @TODO refactor
       backendInjections.getCustomInstanceDetails = getCustomInstanceDetails
+      backendInjections.getCustomObjectDetails = getCustomObjectDetails
       backendInjections.instanceMap = ctx.currentAppRecord.instanceMap
       backendInjections.isVueInstance = val => val._ && Object.keys(val._).includes('vnode')
       payload.instanceData = getInstanceDetails(payload.componentInstance, ctx)
@@ -65,7 +65,7 @@ export const backend: DevtoolsBackend = {
     })
 
     api.on.editComponentState((payload, ctx) => {
-      editState(payload, ctx)
+      editState(payload, api.stateEditor, ctx)
     })
 
     api.on.getComponentDevtoolsOptions(payload => {
@@ -73,7 +73,7 @@ export const backend: DevtoolsBackend = {
     })
 
     api.on.getComponentRenderCode(payload => {
-      payload.code = payload.componentInstance.render.toString()
+      payload.code = !(payload.componentInstance.type instanceof Function) ? payload.componentInstance.render.toString() : payload.componentInstance.type.toString()
     })
 
     api.on.transformCall(payload => {
@@ -83,11 +83,15 @@ export const backend: DevtoolsBackend = {
           component.appContext.app,
           component.uid,
           component.parent ? component.parent.uid : undefined,
-          component
+          component,
         ]
       }
     })
 
-    // @TODO
-  }
-}
+    api.stateEditor.isRef = value => !!value?.__v_isRef
+    api.stateEditor.getRefValue = ref => ref.value
+    api.stateEditor.setRefValue = (ref, value) => {
+      ref.value = value
+    }
+  },
+})

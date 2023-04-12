@@ -33,14 +33,19 @@ export class DevtoolsHookable implements Hookable<BackendContext> {
 
         // App scope
         if (!this.plugin.descriptor.disableAppScope &&
-          this.ctx.currentAppRecord.options.app !== this.plugin.descriptor.app) return
+          this.ctx.currentAppRecord?.options.app !== this.plugin.descriptor.app) return
+
+        // Plugin scope
+        if (!this.plugin.descriptor.disablePluginScope &&
+          (args[0] as any).pluginId != null && (args[0] as any).pluginId !== this.plugin.descriptor.id) return
+
         return originalHandler(...args)
       }
     }
 
     handlers.push({
       handler,
-      plugin: this.ctx.currentPlugin
+      plugin: this.ctx.currentPlugin,
     })
   }
 
@@ -52,7 +57,7 @@ export class DevtoolsHookable implements Hookable<BackendContext> {
         try {
           await handler(payload, ctx)
         } catch (e) {
-          console.error(`An error occured in hook ${eventType}${plugin ? ` registered by plugin ${plugin.descriptor.id}` : ''}`)
+          console.error(`An error occurred in hook '${eventType}'${plugin ? ` registered by plugin '${plugin.descriptor.id}'` : ''} with payload:`, payload)
           console.error(e)
         }
       }
@@ -142,5 +147,9 @@ export class DevtoolsHookable implements Hookable<BackendContext> {
 
   editInspectorState (handler: Handler<HookPayloads[Hooks.EDIT_INSPECTOR_STATE]>) {
     this.hook(Hooks.EDIT_INSPECTOR_STATE, handler, PluginPermission.CUSTOM_INSPECTOR)
+  }
+
+  setPluginSettings (handler: Handler<HookPayloads[Hooks.SET_PLUGIN_SETTINGS]>) {
+    this.hook(Hooks.SET_PLUGIN_SETTINGS, handler)
   }
 }

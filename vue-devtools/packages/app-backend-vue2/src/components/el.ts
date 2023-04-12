@@ -7,7 +7,7 @@ function createRect () {
     left: 0,
     right: 0,
     get width () { return rect.right - rect.left },
-    get height () { return rect.bottom - rect.top }
+    get height () { return rect.bottom - rect.top },
   }
   return rect
 }
@@ -115,4 +115,16 @@ function addIframePosition (bounds, win: any) {
     return rect
   }
   return bounds
+}
+
+export function getRootElementsFromComponentInstance (instance) {
+  if (instance._isFragment) {
+    const list = []
+    const { _fragmentStart, _fragmentEnd } = instance
+    util().mapNodeRange(_fragmentStart, _fragmentEnd, node => {
+      list.push(node)
+    })
+    return list
+  }
+  return [instance.$el]
 }

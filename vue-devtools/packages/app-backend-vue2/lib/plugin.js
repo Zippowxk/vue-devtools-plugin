@@ -1,22 +1,36 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setupPlugin = void 0;
 const devtools_api_1 = require("@vue/devtools-api");
 const shared_utils_1 = require("@vue-devtools/shared-utils");
+const clone_deep_1 = __importDefault(require("clone-deep"));
 let actionId = 0;
-function setupPlugin(api, app) {
+function setupPlugin(api, app, Vue) {
     const ROUTER_INSPECTOR_ID = 'vue2-router-inspector';
     const ROUTER_CHANGES_LAYER_ID = 'vue2-router-changes';
     const VUEX_INSPECTOR_ID = 'vue2-vuex-inspector';
     const VUEX_MUTATIONS_ID = 'vue2-vuex-mutations';
     const VUEX_ACTIONS_ID = 'vue2-vuex-actions';
-    devtools_api_1.setupDevtoolsPlugin({
+    (0, devtools_api_1.setupDevtoolsPlugin)({
         app,
         id: 'org.vuejs.vue2-internal',
         label: 'Vue 2',
         homepage: 'https://vuejs.org/',
-        logo: 'https://vuejs.org/images/icons/favicon-96x96.png'
+        logo: 'https://v2.vuejs.org/images/icons/favicon-96x96.png',
+        settings: {
+            legacyActions: {
+                label: 'Legacy Actions',
+                description: 'Enable this for Vuex < 3.1.0',
+                type: 'boolean',
+                defaultValue: false,
+            },
+        },
     }, api => {
+        var _a;
+        const hook = shared_utils_1.target.__VUE_DEVTOOLS_GLOBAL_HOOK__;
         // Vue Router
         if (app.$router) {
             const router = app.$router;
@@ -25,19 +39,24 @@ function setupPlugin(api, app) {
                 id: ROUTER_INSPECTOR_ID,
                 label: 'Routes',
                 icon: 'book',
-                treeFilterPlaceholder: 'Search routes'
+                treeFilterPlaceholder: 'Search routes',
             });
             api.on.getInspectorTree(payload => {
-                if (payload.app === app && payload.inspectorId === ROUTER_INSPECTOR_ID) {
-                    payload.rootNodes = router.options.routes.map(route => formatRouteNode(router, route, '', payload.filter)).filter(Boolean);
+                if (payload.inspectorId === ROUTER_INSPECTOR_ID) {
+                    if (router.options.routes) {
+                        payload.rootNodes = router.options.routes.map(route => formatRouteNode(router, route, '', payload.filter)).filter(Boolean);
+                    }
+                    else {
+                        console.warn(`[Vue Devtools] No routes found in router`, router.options);
+                    }
                 }
             });
             api.on.getInspectorState(payload => {
-                if (payload.app === app && payload.inspectorId === ROUTER_INSPECTOR_ID) {
+                if (payload.inspectorId === ROUTER_INSPECTOR_ID) {
                     const route = router.matcher.getRoutes().find(r => getPathId(r) === payload.nodeId);
                     if (route) {
                         payload.state = {
-                            options: formatRouteData(route)
+                            options: formatRouteData(route),
                         };
                     }
                 }
@@ -46,19 +65,19 @@ function setupPlugin(api, app) {
             api.addTimelineLayer({
                 id: ROUTER_CHANGES_LAYER_ID,
                 label: 'Router Navigations',
-                color: 0x40a8c4
+                color: 0x40a8c4,
             });
             router.afterEach((to, from) => {
                 api.addTimelineEvent({
                     layerId: ROUTER_CHANGES_LAYER_ID,
                     event: {
-                        time: Date.now(),
+                        time: api.now(),
                         title: to.path,
                         data: {
                             from,
-                            to
-                        }
-                    }
+                            to,
+                        },
+                    },
                 });
                 api.sendInspectorTree(ROUTER_INSPECTOR_ID);
             });
@@ -70,10 +89,10 @@ function setupPlugin(api, app) {
                 id: VUEX_INSPECTOR_ID,
                 label: 'Vuex',
                 icon: 'storage',
-                treeFilterPlaceholder: 'Filter stores...'
+                treeFilterPlaceholder: 'Filter stores...',
             });
             api.on.getInspectorTree((payload) => {
-                if (payload.app === app && payload.inspectorId === VUEX_INSPECTOR_ID) {
+                if (payload.inspectorId === VUEX_INSPECTOR_ID) {
                     if (payload.filter) {
                         const nodes = [];
                         flattenStoreForInspectorTree(nodes, store._modules.root, payload.filter, '');
@@ -81,13 +100,13 @@ function setupPlugin(api, app) {
                     }
                     else {
                         payload.rootNodes = [
-                            formatStoreForInspectorTree(store._modules.root, '')
+                            formatStoreForInspectorTree(store._modules.root, 'Root', ''),
                         ];
                     }
                 }
             });
             api.on.getInspectorState((payload) => {
-                if (payload.app === app && payload.inspectorId === VUEX_INSPECTOR_ID) {
+                if (payload.inspectorId === VUEX_INSPECTOR_ID) {
                     const modulePath = payload.nodeId;
                     const module = getStoreModule(store._modules, modulePath);
                     // Access the getters prop to init getters cache (which is lazy)
@@ -96,79 +115,130 @@ function setupPlugin(api, app) {
                     payload.state = formatStoreForInspectorState(module, store._makeLocalGettersCache, modulePath);
                 }
             });
+            api.on.editInspectorState((payload) => {
+                if (payload.inspectorId === VUEX_INSPECTOR_ID) {
+                    let path = payload.path;
+                    if (payload.nodeId !== VUEX_ROOT_PATH) {
+                        path = [
+                            ...payload.nodeId.split(VUEX_MODULE_PATH_SEPARATOR).slice(0, -1),
+                            ...path,
+                        ];
+                    }
+                    store._committing = true;
+                    payload.set(store._vm.$data.$$state, path);
+                    store._committing = false;
+                }
+            });
             api.addTimelineLayer({
                 id: VUEX_MUTATIONS_ID,
                 label: 'Vuex Mutations',
-                color: LIME_500
+                color: LIME_500,
             });
             api.addTimelineLayer({
                 id: VUEX_ACTIONS_ID,
                 label: 'Vuex Actions',
-                color: LIME_500
+                color: LIME_500,
             });
-            store.subscribe((mutation, state) => {
+            hook.on('vuex:mutation', (mutation, state) => {
                 api.sendInspectorState(VUEX_INSPECTOR_ID);
                 const data = {};
                 if (mutation.payload) {
                     data.payload = mutation.payload;
                 }
-                data.state = state;
+                data.state = (0, clone_deep_1.default)(state);
                 api.addTimelineEvent({
                     layerId: VUEX_MUTATIONS_ID,
                     event: {
-                        time: Date.now(),
+                        time: api.now(),
                         title: mutation.type,
-                        data
-                    }
+                        data,
+                    },
                 });
-            }, { prepend: true });
-            store.subscribeAction({
-                before: (action, state) => {
-                    const data = {};
-                    if (action.payload) {
-                        data.payload = action.payload;
-                    }
-                    action._id = actionId++;
-                    action._time = Date.now();
-                    data.state = state;
-                    api.addTimelineEvent({
-                        layerId: VUEX_ACTIONS_ID,
-                        event: {
-                            time: action._time,
-                            title: action.type,
-                            groupId: action._id,
-                            subtitle: 'start',
-                            data
-                        }
-                    });
-                },
-                after: (action, state) => {
-                    const data = {};
-                    const duration = Date.now() - action._time;
-                    data.duration = {
-                        _custom: {
-                            type: 'duration',
-                            display: `${duration}ms`,
-                            tooltip: 'Action duration',
-                            value: duration
-                        }
-                    };
-                    if (action.payload) {
-                        data.payload = action.payload;
-                    }
-                    data.state = state;
-                    api.addTimelineEvent({
-                        layerId: VUEX_ACTIONS_ID,
-                        event: {
-                            time: Date.now(),
-                            title: action.type,
-                            groupId: action._id,
-                            subtitle: 'end',
-                            data
-                        }
-                    });
+            });
+            function legacySingleActionSub(action, state) {
+                const data = {};
+                if (action.payload) {
+                    data.payload = action.payload;
                 }
-            }, { prepend: true });
+                data.state = state;
+                api.addTimelineEvent({
+                    layerId: VUEX_ACTIONS_ID,
+                    event: {
+                        time: api.now(),
+                        title: action.type,
+                        data,
+                    },
+                });
+            }
+            (_a = store.subscribeAction) === null || _a === void 0 ? void 0 : _a.call(store, api.getSettings().legacyActions
+                ? legacySingleActionSub
+                : {
+                    before: (action, state) => {
+                        const data = {};
+                        if (action.payload) {
+                            data.payload = action.payload;
+                        }
+                        action._id = actionId++;
+                        action._time = api.now();
+                        data.state = state;
+                        api.addTimelineEvent({
+                            layerId: VUEX_ACTIONS_ID,
+                            event: {
+                                time: action._time,
+                                title: action.type,
+                                groupId: action._id,
+                                subtitle: 'start',
+                                data,
+                            },
+                        });
+                    },
+                    after: (action, state) => {
+                        const data = {};
+                        const duration = api.now() - action._time;
+                        data.duration = {
+                            _custom: {
+                                type: 'duration',
+                                display: `${duration}ms`,
+                                tooltip: 'Action duration',
+                                value: duration,
+                            },
+                        };
+                        if (action.payload) {
+                            data.payload = action.payload;
+                        }
+                        data.state = state;
+                        api.addTimelineEvent({
+                            layerId: VUEX_ACTIONS_ID,
+                            event: {
+                                time: api.now(),
+                                title: action.type,
+                                groupId: action._id,
+                                subtitle: 'end',
+                                data,
+                            },
+                        });
+                    },
+                }, { prepend: true });
+            // Inspect getters on mutations
+            api.on.inspectTimelineEvent(payload => {
+                if (payload.layerId === VUEX_MUTATIONS_ID) {
+                    const getterKeys = Object.keys(store.getters);
+                    if (getterKeys.length) {
+                        const vm = new Vue({
+                            data: {
+                                $$state: payload.data.state,
+                            },
+                            computed: store._vm.$options.computed,
+                        });
+                        const originalVm = store._vm;
+                        store._vm = vm;
+                        const tree = transformPathsToObjectTree(store.getters);
+                        payload.data.getters = (0, clone_deep_1.default)(tree);
+                        store._vm = originalVm;
+                        vm.$destroy();
+                    }
+                }
+            });
         }
     });
 }
@@ -185,10 +255,10 @@ const DARK = 0x666666;
 function formatRouteNode(router, route, parentPath, filter) {
     var _a, _b;
     const node = {
-        id: parentPath + route.path,
+        id: route.path.startsWith('/') ? route.path : `${parentPath}/${route.path}`,
         label: route.path,
         children: (_a = route.children) === null || _a === void 0 ? void 0 : _a.map(child => formatRouteNode(router, child, route.path, filter)).filter(Boolean),
-        tags: []
+        tags: [],
     };
     if (filter && !node.id.includes(filter) && !((_b = node.children) === null || _b === void 0 ? void 0 : _b.length))
         return null;
@@ -196,22 +266,21 @@ function formatRouteNode(router, route, parentPath, filter) {
         node.tags.push({
             label: String(route.name),
             textColor: 0,
-            backgroundColor: CYAN_400
+            backgroundColor: CYAN_400,
         });
     }
     if (route.alias != null) {
         node.tags.push({
             label: 'alias',
             textColor: 0,
-            backgroundColor: ORANGE_400
+            backgroundColor: ORANGE_400,
         });
     }
-    const currentPath = router.currentRoute.matched.reduce((p, m) => p + m.path, '');
-    if (node.id === currentPath) {
+    if (node.id === router.currentRoute.path) {
         node.tags.push({
             label: 'active',
             textColor: WHITE,
-            backgroundColor: BLUE_600
+            backgroundColor: BLUE_600,
         });
     }
     if (route.redirect) {
@@ -219,7 +288,7 @@ function formatRouteNode(router, route, parentPath, filter) {
             label: 'redirect: ' +
                 (typeof route.redirect === 'string' ? route.redirect : 'Object'),
             textColor: WHITE,
-            backgroundColor: DARK
+            backgroundColor: DARK,
         });
     }
     return node;
@@ -250,7 +319,7 @@ function formatRouteData(route) {
         if (route.component.props) {
             component.props = route.component.props;
         }
-        if (!shared_utils_1.isEmptyObject(component)) {
+        if (!(0, shared_utils_1.isEmptyObject)(component)) {
             data.push({ key: 'component', value: component });
         }
     }
@@ -266,51 +335,76 @@ function getPathId(routeMatcher) {
 const TAG_NAMESPACED = {
     label: 'namespaced',
     textColor: WHITE,
-    backgroundColor: DARK
+    backgroundColor: DARK,
 };
-function formatStoreForInspectorTree(module, path) {
+const VUEX_ROOT_PATH = '__vdt_root';
+const VUEX_MODULE_PATH_SEPARATOR = '[vdt]';
+const VUEX_MODULE_PATH_SEPARATOR_REG = /\[vdt\]/g;
+function formatStoreForInspectorTree(module, moduleName, path) {
+    var _a;
     return {
-        id: path || 'root',
+        id: path || VUEX_ROOT_PATH,
         // all modules end with a `/`, we want the last segment only
         // cart/ -> cart
         // nested/cart/ -> cart
-        label: extractNameFromPath(path),
+        label: moduleName,
         tags: module.namespaced ? [TAG_NAMESPACED] : [],
-        children: Object.keys(module._children).map((moduleName) => formatStoreForInspectorTree(module._children[moduleName], path + moduleName + '/'))
+        children: Object.keys((_a = module._children) !== null && _a !== void 0 ? _a : {}).map((key) => formatStoreForInspectorTree(module._children[key], key, `${path}${key}${VUEX_MODULE_PATH_SEPARATOR}`)),
     };
 }
 function flattenStoreForInspectorTree(result, module, filter, path) {
     if (path.includes(filter)) {
         result.push({
-            id: path || 'root',
-            label: path.endsWith('/') ? path.slice(0, path.length - 1) : path || 'Root',
-            tags: module.namespaced ? [TAG_NAMESPACED] : []
+            id: path || VUEX_ROOT_PATH,
+            label: path.endsWith(VUEX_MODULE_PATH_SEPARATOR) ? path.slice(0, path.length - 1) : path || 'Root',
+            tags: module.namespaced ? [TAG_NAMESPACED] : [],
         });
     }
     Object.keys(module._children).forEach(moduleName => {
-        flattenStoreForInspectorTree(result, module._children[moduleName], filter, path + moduleName + '/');
+        flattenStoreForInspectorTree(result, module._children[moduleName], filter, path + moduleName + VUEX_MODULE_PATH_SEPARATOR);
     });
 }
 function extractNameFromPath(path) {
-    return path && path !== 'root' ? path.split('/').slice(-2, -1)[0] : 'Root';
+    return path && path !== VUEX_ROOT_PATH ? path.split(VUEX_MODULE_PATH_SEPARATOR).slice(-2, -1)[0] : 'Root';
 }
 function formatStoreForInspectorState(module, getters, path) {
-    getters = !module.namespaced || path === 'root' ? module.context.getters : getters[path];
-    const gettersKeys = Object.keys(getters);
+    var _a, _b;
     const storeState = {
-        state: Object.keys(module.state).map((key) => ({
+        state: Object.keys((_a = module.context.state) !== null && _a !== void 0 ? _a : {}).map((key) => ({
             key,
             editable: true,
-            value: module.state[key]
-        }))
+            value: module.context.state[key],
+        })),
     };
-    if (gettersKeys.length) {
-        const tree = transformPathsToObjectTree(getters);
-        storeState.getters = Object.keys(tree).map((key) => ({
-            key: key.endsWith('/') ? extractNameFromPath(key) : key,
-            editable: false,
-            value: canThrow(() => tree[key])
-        }));
+    if (getters) {
+        const pathWithSlashes = path.replace(VUEX_MODULE_PATH_SEPARATOR_REG, '/');
+        getters = !module.namespaced || path === VUEX_ROOT_PATH ? module.context.getters : getters[pathWithSlashes];
+        let gettersKeys = Object.keys(getters);
+        const shouldPickGetters = !module.namespaced && path !== VUEX_ROOT_PATH;
+        if (shouldPickGetters) {
+            // Only pick the getters defined in the non-namespaced module
+            const definedGettersKeys = Object.keys((_b = module._rawModule.getters) !== null && _b !== void 0 ? _b : {});
+            gettersKeys = gettersKeys.filter(key => definedGettersKeys.includes(key));
+        }
+        if (gettersKeys.length) {
+            let moduleGetters;
+            if (shouldPickGetters) {
+                // Only pick the getters defined in the non-namespaced module
+                moduleGetters = {};
+                for (const key of gettersKeys) {
+                    moduleGetters[key] = canThrow(() => getters[key]);
+                }
+            }
+            else {
+                moduleGetters = getters;
+            }
+            const tree = transformPathsToObjectTree(moduleGetters);
+            storeState.getters = Object.keys(tree).map((key) => ({
+                key: key.endsWith('/') ? extractNameFromPath(key) : key,
+                editable: false,
+                value: canThrow(() => tree[key]),
+            }));
+        }
     }
     return storeState;
 }
@@ -328,8 +422,8 @@ function transformPathsToObjectTree(getters) {
                             value: {},
                             display: p,
                             tooltip: 'Module',
-                            abstract: true
-                        }
+                            abstract: true,
+                        },
                     };
                 }
                 target = target[p]._custom.value;
@@ -343,14 +437,14 @@ function transformPathsToObjectTree(getters) {
     return result;
 }
 function getStoreModule(moduleMap, path) {
-    const names = path.split('/').filter((n) => n);
+    const names = path.split(VUEX_MODULE_PATH_SEPARATOR).filter((n) => n);
     return names.reduce((module, moduleName, i) => {
-        const child = module[moduleName];
+        const child = module[moduleName === VUEX_ROOT_PATH ? 'root' : moduleName];
         if (!child) {
             throw new Error(`Missing module "${moduleName}" for path "${path}".`);
         }
         return i === names.length - 1 ? child : child._children;
-    }, path === 'root' ? moduleMap : moduleMap.root._children);
+    }, path === VUEX_ROOT_PATH ? moduleMap : moduleMap.root._children);
 }
 function canThrow(cb) {
     try {

@@ -1,16 +1,16 @@
 <script lang="ts">
 import SplitPane from '@front/features/layout/SplitPane.vue'
 import PluginListItem from './PluginListItem.vue'
+import PluginHome from './PluginHome.vue'
 
-import { defineComponent, ref, computed } from '@vue/composition-api'
+import { defineComponent, ref, computed } from 'vue'
 import { usePlugins } from '.'
-import EmptyPane from '../layout/EmptyPane.vue'
 
 export default defineComponent({
   components: {
     SplitPane,
     PluginListItem,
-    EmptyPane
+    PluginHome,
   },
 
   setup () {
@@ -28,75 +28,63 @@ export default defineComponent({
 
     return {
       plugins: filteredPlugins,
-      search
+      search,
     }
-  }
+  },
 })
 </script>
 
 <template>
-  <EmptyPane
-    v-if="!plugins.length"
-    icon="extension"
-  >
-    No devtools plugins found
-  </EmptyPane>
-  <SplitPane
-    v-else
-    save-id="plugins"
-    :default-split="30"
-  >
-    <template #left>
-      <div class="h-full flex flex-col">
-        <div class="flex-none">
-          <VueInput
-            v-model="search"
-            icon-left="search"
-            placeholder="Filter devtools plugins..."
-            select-all
-            class="w-full flat border-b border-gray-200 dark:border-gray-800"
-          />
-        </div>
-        <div class="overflow-y-auto">
-          <PluginListItem
-            v-for="plugin of plugins"
-            :key="plugin.id"
-            :plugin="plugin"
-          />
-        </div>
-      </div>
-
-      <portal to="header-end">
-        <VueDropdown
-          :offset="[0, 0]"
-        >
-          <template #trigger>
-            <VueButton
-              class="icon-button flat"
-              icon-left="help"
+  <div class="h-full">
+    <PluginHome
+      v-if="!plugins.length"
+      no-plugins
+    />
+    <SplitPane
+      v-else
+      save-id="plugins"
+      :default-split="30"
+    >
+      <template #left>
+        <div class="h-full flex flex-col">
+          <div class="flex-none">
+            <VueInput
+              v-model="search"
+              icon-left="search"
+              placeholder="Filter devtools plugins..."
+              select-all
+              class="w-full flat border-b border-gray-200 dark:border-gray-800"
             />
-          </template>
-
-          <div>
-            <div class="px-10 py-8 flex items-center space-x-8 max-w-lg">
-              <img
-                src="~@front/assets/undraw_Gift_box.svg"
-                class="max-h-32 flex-none"
-              >
-
-              <p class="flex-1">
-                Devtools plugins are added by packages in your application. They can provide new features to the Vue devtools, such as custom inspectors, additional component data or timeline layers.
-              </p>
-            </div>
           </div>
-        </VueDropdown>
-      </portal>
-    </template>
+          <div class="overflow-y-auto">
+            <PluginListItem
+              v-for="plugin of plugins"
+              :key="plugin.id"
+              :plugin="plugin"
+            />
+          </div>
+        </div>
+      </template>
 
-    <template #right>
-      <router-view />
-    </template>
-  </SplitPane>
+      <template #right>
+        <div class="h-full overflow-y-auto">
+          <router-view />
+        </div>
+      </template>
+    </SplitPane>
+
+    <portal to="header-end">
+      <VueButton
+        :to="{
+          name: 'global-settings'
+        }"
+        icon-left="settings"
+        class="flat"
+      >
+        Global settings
+      </VueButton>
+    </portal>
+  </div>
 </template>
 
 <style scoped>

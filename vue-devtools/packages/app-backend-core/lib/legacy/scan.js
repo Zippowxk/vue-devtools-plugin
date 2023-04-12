@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.scan = void 0;
 const shared_utils_1 = require("@vue-devtools/shared-utils");
+const page_config_1 = require("../page-config");
 const rootInstances = [];
-let rootUID = 0;
 /**
  * Scan the page for root level Vue instances.
  */
@@ -27,11 +27,6 @@ function scan() {
                 baseVue = baseVue.super;
             }
             if (baseVue.config && baseVue.config.devtools) {
-                // give a unique id to root instance so we can
-                // 'namespace' its children
-                if (typeof instance.__VUE_DEVTOOLS_ROOT_UID__ === 'undefined') {
-                    instance.__VUE_DEVTOOLS_ROOT_UID__ = ++rootUID;
-                }
                 rootInstances.push(instance);
             }
             return true;
@@ -56,6 +51,17 @@ function scan() {
         for (const iframe of iframes) {
             try {
                 walkDocument(iframe.contentDocument);
+            }
+            catch (e) {
+                // Ignore
+            }
+        }
+        // Scan for Vue instances in the customTarget elements
+        const { customVue2ScanSelector } = (0, page_config_1.getPageConfig)();
+        const customTargets = customVue2ScanSelector ? document.querySelectorAll(customVue2ScanSelector) : [];
+        for (const customTarget of customTargets) {
+            try {
+                walkDocument(customTarget);
             }
             catch (e) {
                 // Ignore

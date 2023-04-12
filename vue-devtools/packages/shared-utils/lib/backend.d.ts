@@ -2,9 +2,11 @@ export declare const backendInjections: {
     instanceMap: Map<any, any>;
     isVueInstance: (value: any) => boolean;
     getCustomInstanceDetails: (instance: any) => any;
+    getCustomObjectDetails: (value: any, proto: string) => any;
 };
 export declare function getInstanceMap(): Map<any, any>;
 export declare function getCustomInstanceDetails(instance: any): any;
+export declare function getCustomObjectDetails(value: any, proto: string): any;
 export declare function isVueInstance(value: any): boolean;
 export declare function getCustomRouterDetails(router: any): {
     _custom: {

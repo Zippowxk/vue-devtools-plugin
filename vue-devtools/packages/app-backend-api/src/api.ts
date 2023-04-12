@@ -1,4 +1,13 @@
-import { Bridge, hasPluginPermission, HookEvents, PluginPermission, set } from '@vue-devtools/shared-utils'
+import {
+  Bridge,
+  hasPluginPermission,
+  HookEvents,
+  PluginPermission,
+  getPluginDefaultSettings,
+  getPluginSettings,
+  setPluginSettings,
+  StateEditor,
+} from '@vue-devtools/shared-utils'
 import {
   Hooks,
   HookPayloads,
@@ -11,31 +20,33 @@ import {
   EditStatePayload,
   WithId,
   ComponentTreeNode,
-  ComponentDevtoolsOptions
+  ComponentDevtoolsOptions,
+  now,
 } from '@vue/devtools-api'
 import { DevtoolsHookable } from './hooks'
 import { BackendContext } from './backend-context'
 import { Plugin } from './plugin'
+import { DevtoolsBackend } from './backend'
+import { AppRecord } from './app-record'
 
-let backendOn: DevtoolsHookable
 const pluginOn: DevtoolsHookable[] = []
 
 export class DevtoolsApi {
   bridge: Bridge
   ctx: BackendContext
+  backend: DevtoolsBackend
+  on: DevtoolsHookable
+  stateEditor: StateEditor = new StateEditor()
 
-  constructor (bridge: Bridge, ctx: BackendContext) {
-    this.bridge = bridge
+  constructor (backend: DevtoolsBackend, ctx: BackendContext) {
+    this.backend = backend
     this.ctx = ctx
-    if (!backendOn) { backendOn = new DevtoolsHookable(ctx) }
-  }
-
-  get on () {
-    return backendOn
+    this.bridge = ctx.bridge
+    this.on = new DevtoolsHookable(ctx)
   }
 
   async callHook<T extends Hooks> (eventType: T, payload: HookPayloads[T], ctx: BackendContext = this.ctx) {
-    payload = await backendOn.callHandlers(eventType, payload, ctx)
+    payload = await this.on.callHandlers(eventType, payload, ctx)
     for (const on of pluginOn) {
       payload = await on.callHandlers(eventType, payload, ctx)
     }
@@ -46,43 +57,44 @@ export class DevtoolsApi {
     const payload = await this.callHook(Hooks.TRANSFORM_CALL, {
       callName,
       inArgs: args,
-      outArgs: args.slice()
+      outArgs: args.slice(),
     })
     return payload.outArgs
   }
 
-  async getAppRecordName (app: App, id: number): Promise<string> {
+  async getAppRecordName (app: App, defaultName: string): Promise<string> {
     const payload = await this.callHook(Hooks.GET_APP_RECORD_NAME, {
       app,
-      name: null
+      name: null,
     })
     if (payload.name) {
       return payload.name
     } else {
-      return `App ${id + 1}`
+      return `App ${defaultName}`
     }
   }
 
   async getAppRootInstance (app: App) {
     const payload = await this.callHook(Hooks.GET_APP_ROOT_INSTANCE, {
       app,
-      root: null
+      root: null,
     })
     return payload.root
   }
 
   async registerApplication (app: App) {
     await this.callHook(Hooks.REGISTER_APPLICATION, {
-      app
+      app,
     })
   }
 
-  async walkComponentTree (instance: ComponentInstance, maxDepth = -1, filter: string = null) {
+  async walkComponentTree (instance: ComponentInstance, maxDepth = -1, filter: string = null, recursively = false) {
     const payload = await this.callHook(Hooks.WALK_COMPONENT_TREE, {
       componentInstance: instance,
       componentTreeData: null,
       maxDepth,
-      filter
+      filter,
+      recursively,
     })
     return payload.componentTreeData
   }
@@ -92,7 +104,7 @@ export class DevtoolsApi {
       app,
       componentInstance: instance,
       treeNode,
-      filter
+      filter,
     })
     return payload.treeNode
   }
@@ -100,7 +112,7 @@ export class DevtoolsApi {
   async walkComponentParents (instance: ComponentInstance) {
     const payload = await this.callHook(Hooks.WALK_COMPONENT_PARENTS, {
       componentInstance: instance,
-      parentInstances: []
+      parentInstances: [],
     })
     return payload.parentInstances
   }
@@ -109,7 +121,7 @@ export class DevtoolsApi {
     const payload = await this.callHook(Hooks.INSPECT_COMPONENT, {
       app,
       componentInstance: instance,
-      instanceData: null
+      instanceData: null,
     })
     return payload.instanceData
   }
@@ -117,7 +129,7 @@ export class DevtoolsApi {
   async getComponentBounds (instance: ComponentInstance) {
     const payload = await this.callHook(Hooks.GET_COMPONENT_BOUNDS, {
       componentInstance: instance,
-      bounds: null
+      bounds: null,
     })
     return payload.bounds
   }
@@ -125,7 +137,7 @@ export class DevtoolsApi {
   async getComponentName (instance: ComponentInstance) {
     const payload = await this.callHook(Hooks.GET_COMPONENT_NAME, {
       componentInstance: instance,
-      name: null
+      name: null,
     })
     return payload.name
   }
@@ -133,7 +145,7 @@ export class DevtoolsApi {
   async getComponentInstances (app: App) {
     const payload = await this.callHook(Hooks.GET_COMPONENT_INSTANCES, {
       app,
-      componentInstances: []
+      componentInstances: [],
     })
     return payload.componentInstances
   }
@@ -141,7 +153,7 @@ export class DevtoolsApi {
   async getElementComponent (element: HTMLElement | any) {
     const payload = await this.callHook(Hooks.GET_ELEMENT_COMPONENT, {
       element,
-      componentInstance: null
+      componentInstance: null,
     })
     return payload.componentInstance
   }
@@ -149,7 +161,7 @@ export class DevtoolsApi {
   async getComponentRootElements (instance: ComponentInstance) {
     const payload = await this.callHook(Hooks.GET_COMPONENT_ROOT_ELEMENTS, {
       componentInstance: instance,
-      rootElements: []
+      rootElements: [],
     })
     return payload.rootElements
   }
@@ -162,7 +174,7 @@ export class DevtoolsApi {
       path: arrayPath,
       type,
       state,
-      set: (object, path = arrayPath, value = state.value, cb?) => set(object, path, value, cb || createDefaultSetCallback(state))
+      set: (object, path = arrayPath, value = state.value, cb?) => this.stateEditor.set(object, path, value, cb || this.stateEditor.createDefaultSetCallback(state)),
     })
     return payload.componentInstance
   }
@@ -170,7 +182,7 @@ export class DevtoolsApi {
   async getComponentDevtoolsOptions (instance: ComponentInstance): Promise<ComponentDevtoolsOptions> {
     const payload = await this.callHook(Hooks.GET_COMPONENT_DEVTOOLS_OPTIONS, {
       componentInstance: instance,
-      options: null
+      options: null,
     })
     return payload.options || {}
   }
@@ -180,10 +192,10 @@ export class DevtoolsApi {
   }> {
     const payload = await this.callHook(Hooks.GET_COMPONENT_RENDER_CODE, {
       componentInstance: instance,
-      code: null
+      code: null,
     })
     return {
-      code: payload.code
+      code: payload.code,
     }
   }
 
@@ -193,7 +205,7 @@ export class DevtoolsApi {
       layerId: eventData.layerId,
       app,
       data: eventData.event.data,
-      all: eventData.all
+      all: eventData.all,
     })
     return payload.data
   }
@@ -207,7 +219,7 @@ export class DevtoolsApi {
       inspectorId,
       app,
       filter,
-      rootNodes: []
+      rootNodes: [],
     })
     return payload.rootNodes
   }
@@ -217,7 +229,7 @@ export class DevtoolsApi {
       inspectorId,
       app,
       nodeId,
-      state: null
+      state: null,
     })
     return payload.state
   }
@@ -231,36 +243,31 @@ export class DevtoolsApi {
       path: arrayPath,
       type,
       state,
-      set: (object, path = arrayPath, value = state.value, cb?) => set(object, path, value, cb || createDefaultSetCallback(state))
+      set: (object, path = arrayPath, value = state.value, cb?) => this.stateEditor.set(object, path, value, cb || this.stateEditor.createDefaultSetCallback(state)),
     })
   }
-}
 
-function createDefaultSetCallback (state: EditStatePayload) {
-  return (obj, field, value) => {
-    if (state.remove || state.newKey) {
-      if (Array.isArray(obj)) {
-        obj.splice(field, 1)
-      } else {
-        delete obj[field]
-      }
-    }
-    if (!state.remove) {
-      obj[state.newKey || field] = value
-    }
+  now () {
+    return now()
   }
 }
 
-export class DevtoolsPluginApiInstance implements DevtoolsPluginApi {
+export class DevtoolsPluginApiInstance<TSettings = any> implements DevtoolsPluginApi<TSettings> {
   bridge: Bridge
   ctx: BackendContext
   plugin: Plugin
+  appRecord: AppRecord
+  backendApi: DevtoolsApi
   on: DevtoolsHookable
+  private defaultSettings: TSettings
 
-  constructor (plugin: Plugin, ctx: BackendContext) {
+  constructor (plugin: Plugin, appRecord: AppRecord, ctx: BackendContext) {
     this.bridge = ctx.bridge
     this.ctx = ctx
     this.plugin = plugin
+    this.appRecord = appRecord
+    this.backendApi = appRecord.backend.api
+    this.defaultSettings = getPluginDefaultSettings(plugin.descriptor.settings)
     this.on = new DevtoolsHookable(ctx, plugin)
     pluginOn.push(this.on)
   }
@@ -271,7 +278,7 @@ export class DevtoolsPluginApiInstance implements DevtoolsPluginApi {
     if (!this.enabled || !this.hasPermission(PluginPermission.COMPONENTS)) return
 
     if (instance) {
-      this.ctx.hook.emit(HookEvents.COMPONENT_UPDATED, ...await this.ctx.api.transformCall(HookEvents.COMPONENT_UPDATED, instance))
+      this.ctx.hook.emit(HookEvents.COMPONENT_UPDATED, ...await this.backendApi.transformCall(HookEvents.COMPONENT_UPDATED, instance))
     } else {
       this.ctx.hook.emit(HookEvents.COMPONENT_UPDATED)
     }
@@ -320,15 +327,15 @@ export class DevtoolsPluginApiInstance implements DevtoolsPluginApi {
   }
 
   getComponentBounds (instance: ComponentInstance) {
-    return this.ctx.api.getComponentBounds(instance)
+    return this.backendApi.getComponentBounds(instance)
   }
 
   getComponentName (instance: ComponentInstance) {
-    return this.ctx.api.getComponentName(instance)
+    return this.backendApi.getComponentName(instance)
   }
 
   getComponentInstances (app: App) {
-    return this.ctx.api.getComponentInstances(app)
+    return this.backendApi.getComponentInstances(app)
   }
 
   highlightElement (instance: ComponentInstance) {
@@ -343,6 +350,18 @@ export class DevtoolsPluginApiInstance implements DevtoolsPluginApi {
 
     this.ctx.hook.emit(HookEvents.COMPONENT_UNHIGHLIGHT, this.plugin)
     return true
+  }
+
+  getSettings (pluginId?: string) {
+    return getPluginSettings(pluginId ?? this.plugin.descriptor.id, this.defaultSettings)
+  }
+
+  setSettings (value: TSettings, pluginId?: string) {
+    setPluginSettings(pluginId ?? this.plugin.descriptor.id, value)
+  }
+
+  now () {
+    return now()
   }
 
   private get enabled () {

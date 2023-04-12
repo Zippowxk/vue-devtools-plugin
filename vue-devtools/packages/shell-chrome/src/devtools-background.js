@@ -16,7 +16,7 @@ function createPanelIfHasVue () {
     return
   }
   chrome.devtools.inspectedWindow.eval(
-    '!!(window.__VUE_DEVTOOLS_GLOBAL_HOOK__.Vue || window.__VUE_DEVTOOLS_GLOBAL_HOOK__.apps.length)',
+    '!!(window.__VUE_DEVTOOLS_GLOBAL_HOOK__ && (window.__VUE_DEVTOOLS_GLOBAL_HOOK__.Vue || window.__VUE_DEVTOOLS_GLOBAL_HOOK__.apps.length))',
     function (hasVue) {
       if (!hasVue || created) {
         return
@@ -29,9 +29,9 @@ function createPanelIfHasVue () {
           // panel loaded
           panel.onShown.addListener(onPanelShown)
           panel.onHidden.addListener(onPanelHidden)
-        }
+        },
       )
-    }
+    },
   )
 }
 

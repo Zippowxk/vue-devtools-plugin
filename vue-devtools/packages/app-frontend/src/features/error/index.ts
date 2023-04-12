@@ -1,4 +1,4 @@
-import { ref, computed } from '@vue/composition-api'
+import { ref, computed } from 'vue'
 
 export interface ErrorMessage {
   message: string
@@ -15,7 +15,7 @@ export function putError (message: string, icon: string = null) {
 
   errors.value.push({
     message,
-    icon
+    icon,
   })
 }
 
@@ -29,6 +29,6 @@ export function useError () {
   return {
     error,
     putError,
-    clearError
+    clearError,
   }
 }

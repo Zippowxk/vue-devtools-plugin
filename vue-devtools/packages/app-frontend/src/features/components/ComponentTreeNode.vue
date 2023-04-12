@@ -1,11 +1,11 @@
 <script lang="ts">
-import { computed, toRefs, onMounted, ref, watch, defineComponent, PropType } from '@vue/composition-api'
+import { computed, toRefs, onMounted, ref, watch, defineComponent, PropType } from 'vue'
 import { ComponentTreeNode } from '@vue/devtools-api'
 import scrollIntoView from 'scroll-into-view-if-needed'
-import { getComponentDisplayName, UNDEFINED } from '@utils/util'
-import SharedData from '@utils/shared-data'
-import { sortChildren, useComponent, useComponentHighlight } from './composable'
+import { getComponentDisplayName, UNDEFINED, SharedData } from '@vue-devtools/shared-utils'
+import { sortChildren, useComponent, useComponentHighlight, updateTrackingEvents, updateTrackingLimit } from './composable'
 import { onKeyDown } from '@front/util/keyboard'
+import { reactiveNow, useTimeAgo } from '@front/util/time'
 
 const DEFAULT_EXPAND_DEPTH = 2
 
@@ -15,13 +15,13 @@ export default defineComponent({
   props: {
     instance: {
       type: Object as PropType<ComponentTreeNode>,
-      required: true
+      required: true,
     },
 
     depth: {
       type: Number,
-      default: 0
-    }
+      default: 0,
+    },
   },
 
   setup (props, { emit }) {
@@ -40,9 +40,9 @@ export default defineComponent({
       select,
       isExpanded: expanded,
       isExpandedUndefined,
-      checkIsExpanded,
+      isComponentOpen,
       toggleExpand: toggle,
-      subscribeToComponentTree
+      subscribeToComponentTree,
     } = useComponent(instance)
 
     subscribeToComponentTree()
@@ -51,7 +51,7 @@ export default defineComponent({
 
     onMounted(() => {
       if (isExpandedUndefined.value && props.depth < DEFAULT_EXPAND_DEPTH) {
-        toggle(false)
+        toggle()
       }
     })
 
@@ -69,7 +69,7 @@ export default defineComponent({
           scrollMode: 'if-needed',
           block: 'center',
           inline: 'nearest',
-          behavior: 'smooth'
+          behavior: 'smooth',
         })
       }
     }
@@ -93,6 +93,11 @@ export default defineComponent({
               if (expanded.value) {
                 toggle()
               }
+              break
+            }
+            case ' ':
+            case 'Enter': {
+              toggle()
               break
             }
             case 'ArrowDown': {
@@ -130,7 +135,7 @@ export default defineComponent({
       } else {
         let child = sortedChildren.value[index - 1]
         while (child) {
-          if (child.children.length && checkIsExpanded(child.id)) {
+          if (child.children.length && isComponentOpen(child.id)) {
             const children = sortChildren(child.children)
             child = children[children.length - 1]
           } else {
@@ -141,6 +146,21 @@ export default defineComponent({
       }
     }
 
+    function switchToggle (event: MouseEvent) {
+      if (event.shiftKey) {
+        toggle(true, !expanded.value)
+      } else {
+        toggle()
+      }
+    }
+    // Update tracking
+
+    const updateTracking = computed(() => updateTrackingEvents.value[props.instance.id])
+    const showUpdateTracking = computed(() => updateTracking.value?.time > updateTrackingLimit.value && updateTracking.value?.time > reactiveNow.value - 20_000)
+    const updateTrackingTime = computed(() => updateTracking.value?.time)
+    const { timeAgo: updateTrackingTimeAgo } = useTimeAgo(updateTrackingTime)
+    const updateTrackingOpacity = computed(() => showUpdateTracking.value ? 1 - (reactiveNow.value - updateTracking.value?.time) / 20_000 : 0)
+
     return {
       toggleEl,
       sortedChildren,
@@ -149,13 +169,20 @@ export default defineComponent({
       selected,
       select,
       expanded,
-      toggle,
-      highlight,
-      unhighlight,
+      switchToggle,
+      // highlight,
+      // unhighlight,
+      // toggle,
+      // highlight,
+      // unhighlight,
       selectNextSibling,
-      selectPreviousSibling
+      selectPreviousSibling,
+      showUpdateTracking,
+      updateTracking,
+      updateTrackingTimeAgo,
+      updateTrackingOpacity,
     }
-  }
+  },
 })
 </script>
 
@@ -163,7 +190,7 @@ export default defineComponent({
   <div class="min-w-max">
     <div
       ref="toggleEl"
-      class="font-mono cursor-pointer relative z-10 rounded whitespace-nowrap flex items-center pr-2 text-sm selectable-item"
+      class="font-mono cursor-pointer relative z-10 rounded whitespace-nowrap flex items-center pr-2 text-sm select-none selectable-item"
       :class="{
         selected,
         'opacity-50': instance.inactive,
@@ -172,16 +199,17 @@ export default defineComponent({
         paddingLeft: depth * 15 + 4 + 'px'
       }"
       @click="select()"
-      @mouseover="highlight()"
-      @mouseleave="unhighlight()"
     >
+    <!--       @dblclick="switchToggle"
+      @mouseover="highlight()"
+      @mouseleave="unhighlight()"  delete from here -->
       <!-- arrow wrapper for better hit box -->
       <span
         class="w-4 h-4 flex items-center justify-center"
         :class="{
           'invisible': !instance.hasChildren
         }"
-        @click.stop="toggle()"
+        @click.stop="switchToggle"
       >
         <span
           :class="{
@@ -193,7 +221,12 @@ export default defineComponent({
 
       <!-- Component tag -->
       <span class="content">
-        <span class="angle-bracket text-gray-400 dark:text-gray-600">&lt;</span>
+        <span
+          class="angle-bracket"
+          :class="[
+            selected ? 'text-white/60' : 'text-gray-400 dark:text-gray-600',
+          ]"
+        >&lt;</span>
 
         <span class="item-name text-green-500">{{ displayName }}</span>
 
@@ -212,7 +245,12 @@ export default defineComponent({
           > key</span>=<span>{{ instance.renderKey }}</span>
         </span>
 
-        <span class="angle-bracket text-gray-400 dark:text-gray-600">&gt;</span>
+        <span
+          class="angle-bracket"
+          :class="[
+            selected ? 'text-white/60' : 'text-gray-400 dark:text-gray-600',
+          ]"
+        >&gt;</span>
       </span>
 
       <span class="flex items-center space-x-2 ml-2 h-full">
@@ -245,9 +283,43 @@ export default defineComponent({
         >
           {{ tag.label }}
         </span>
-        <!-- <span class="info bg-gray-500">
-          {{ instance.uid }}
-        </span> -->
+        <template v-if="$shared.debugInfo">
+          <span
+            v-tooltip="'id'"
+            class="info bg-gray-500"
+          >
+            {{ instance.id }}
+          </span>
+          <span
+            v-tooltip="'Order in DOM'"
+            class="info bg-gray-500"
+          >
+            {{ instance.domOrder }}
+          </span>
+        </template>
+
+        <VTooltip
+          v-if="showUpdateTracking"
+          class="h-4"
+        >
+          <div class="px-3 -mx-2 h-full flex items-center">
+            <div
+              class="w-1 h-1 rounded-full"
+              :class="[
+                selected ? 'bg-white' : 'bg-green-500',
+              ]"
+              :style="{
+                opacity: updateTrackingOpacity,
+              }"
+            />
+          </div>
+
+          <template #popper>
+            <div>
+              Updated {{ updateTrackingTimeAgo }}
+            </div>
+          </template>
+        </VTooltip>
       </span>
     </div>
 

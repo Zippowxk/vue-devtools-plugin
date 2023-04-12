@@ -1,5 +1,5 @@
-import Vue from 'vue'
-import { computed, ref } from '@vue/composition-api'
+import { computed, ref, set } from 'vue'
+import { PluginDescriptor } from '@vue/devtools-api'
 import { Bridge, BridgeEvents } from '@vue-devtools/shared-utils'
 import { getBridge } from '@front/features/bridge'
 import { useCurrentApp } from '@front/features/apps'
@@ -7,24 +7,25 @@ import { useCurrentApp } from '@front/features/apps'
 export interface Plugin {
   id: string
   label: string
-  appId: number
+  appId: string
   packageName: string
   homepage: string
   logo: string
   componentStateTypes: string[]
+  settingsSchema?: PluginDescriptor['settings']
 }
 
 interface PluginsPerApp {
-  [appId: number]: Plugin[]
+  [appId: string]: Plugin[]
 }
 
 const pluginsPerApp = ref<PluginsPerApp>({})
 
-function getPlugins (appId: number) {
+function getPlugins (appId: string) {
   let plugins = pluginsPerApp.value[appId]
   if (!plugins) {
     plugins = []
-    Vue.set(pluginsPerApp.value, appId, plugins)
+    set(pluginsPerApp.value, appId, plugins)
     // Read the property again to make it reactive
     plugins = pluginsPerApp.value[appId]
   }
@@ -41,7 +42,7 @@ export function usePlugins () {
   const plugins = computed(() => getPlugins(currentAppId.value))
 
   return {
-    plugins
+    plugins,
   }
 }
 
@@ -53,7 +54,7 @@ export function useComponentStateTypePlugin () {
   }
 
   return {
-    getStateTypePlugin
+    getStateTypePlugin,
   }
 }
 
@@ -68,13 +69,13 @@ function addPlugin (plugin: Plugin) {
 }
 
 export function setupPluginsBridgeEvents (bridge: Bridge) {
-  bridge.on(BridgeEvents.TO_FRONT_DEVTOOLS_PLUGIN_ADD, ({ plugin }) => {
-    addPlugin(plugin)
+  bridge.on(BridgeEvents.TO_FRONT_DEVTOOLS_PLUGIN_ADD, async ({ plugin }) => {
+    await addPlugin(plugin)
   })
 
-  bridge.on(BridgeEvents.TO_FRONT_DEVTOOLS_PLUGIN_LIST, ({ plugins }) => {
+  bridge.on(BridgeEvents.TO_FRONT_DEVTOOLS_PLUGIN_LIST, async ({ plugins }) => {
     for (const plugin of plugins) {
-      addPlugin(plugin)
+      await addPlugin(plugin)
     }
   })
 

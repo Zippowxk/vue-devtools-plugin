@@ -1,19 +1,19 @@
 <script lang="ts">
-import { defineComponent } from '@vue/composition-api'
+import { defineComponent } from 'vue'
 import { useError } from '.'
 
 export default defineComponent({
   setup () {
     const {
       error,
-      clearError
+      clearError,
     } = useError()
 
     return {
       error,
-      clearError
+      clearError,
     }
-  }
+  },
 })
 </script>
 

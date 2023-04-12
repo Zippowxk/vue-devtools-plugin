@@ -42,7 +42,7 @@ function setToString (func, string) {
     configurable: true,
     enumerable: false,
     value: () => string,
-    writable: true
+    writable: true,
   })
 }
 
@@ -56,7 +56,7 @@ const handler = {
   apply: function (target, thisArg, argumentsList) {
     console.log(`Calculate sum: ${argumentsList}`)
     return argumentsList[0] + argumentsList[1]
-  }
+  },
 }
 
 const proxy1 = new Proxy(sum, handler)
@@ -66,23 +66,29 @@ for (let i = 0; i < 1000000; i++) {
   veryLongText += `line${i}\n`
 }
 
+const unassignedPropSymbol = Symbol('unassigned')
+
 export default {
   components: {
     TestComponent: {
       props: { bar: { default: 'hey' } },
       data: () => ({ foo: '42' }),
       computed: {
-        parentComp () { return this.$parent }
+        parentComp () { return this.$parent },
       },
-      render: () => h('div', '<TestComponent />')
-    }
+      render: () => h('div', '<TestComponent />'),
+    },
   },
 
   props: {
     multiTypeProp: {
       type: [Date, Boolean],
-      default: false
-    }
+      default: false,
+    },
+
+    symbolProp: {
+      default: unassignedPropSymbol,
+    },
   },
 
   data () {
@@ -98,10 +104,10 @@ export default {
       def: CompDef,
       def2: {
         name: 'MyComponent',
-        render () {}
+        render () {},
       },
       def3: {
-        render () {}
+        render () {},
       },
       largeArray: [],
       i: new Set([1, 2, 3, 4, new Set([5, 6, 7, 8]), new Map([[1, 2], [3, 4], [5, new Map([[6, 7]])]])]),
@@ -115,7 +121,7 @@ export default {
         b,
         c) {},
       veryLongText,
-      someElement: null
+      someElement: null,
     }
   },
 
@@ -123,7 +129,7 @@ export default {
     // eslint-disable-next-line vue/return-in-computed-property
     throws () {
       throw new Error('Some error')
-    }
+    },
   },
 
   mounted () {
@@ -152,7 +158,7 @@ export default {
       this.$forceUpdate()
     },
 
-    prototypeString: val => Object.prototype.toString.call(val)
-  }
+    prototypeString: val => Object.prototype.toString.call(val),
+  },
 }
 </script>

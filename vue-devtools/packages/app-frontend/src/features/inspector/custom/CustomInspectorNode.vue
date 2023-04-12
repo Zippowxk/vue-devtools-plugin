@@ -1,6 +1,5 @@
 <script lang="ts">
-import Vue from 'vue'
-import { ref, computed, watch, defineComponent } from '@vue/composition-api'
+import Vue, { ref, computed, watch, defineComponent } from 'vue'
 import scrollIntoView from 'scroll-into-view-if-needed'
 import { onKeyDown } from '@front/util/keyboard'
 import { useCurrentInspector } from './composable'
@@ -13,26 +12,26 @@ export default defineComponent({
   props: {
     node: {
       type: Object,
-      required: true
+      required: true,
     },
 
     depth: {
       type: Number,
-      default: 0
-    }
+      default: 0,
+    },
   },
 
   setup (props, { emit }) {
     const {
       currentInspector: inspector,
-      selectNode
+      selectNode,
     } = useCurrentInspector()
 
     const expanded = computed({
       get: () => !!inspector.value.expandedMap[props.node.id],
       set: value => {
         Vue.set(inspector.value.expandedMap, props.node.id, value)
-      }
+      },
     })
 
     // Init expanded
@@ -48,7 +47,7 @@ export default defineComponent({
       selectNode(props.node)
     }
 
-    const selected = computed(() => inspector.value.selectedNodeId === props.node.id)
+    const selected = computed(() => inspector.value?.selectedNodeId === props.node.id)
 
     // Init selection if an id is set but the selection wasn't loaded yet
     watch(() => selected.value && inspector.value.selectedNode !== props.node, value => {
@@ -56,7 +55,7 @@ export default defineComponent({
         selectNode(props.node)
       }
     }, {
-      immediate: true
+      immediate: true,
     })
 
     // Auto scroll
@@ -71,7 +70,7 @@ export default defineComponent({
           scrollMode: 'if-needed',
           block: 'center',
           inline: 'nearest',
-          behavior: 'smooth'
+          behavior: 'smooth',
         })
       }
     }
@@ -149,9 +148,9 @@ export default defineComponent({
       selected,
       toggleEl,
       selectNextSibling,
-      selectPreviousSibling
+      selectPreviousSibling,
     }
-  }
+  },
 })
 </script>
 
@@ -159,7 +158,7 @@ export default defineComponent({
   <div class="min-w-max">
     <div
       ref="toggleEl"
-      class="font-mono cursor-pointer relative z-10 rounded whitespace-nowrap flex items-center pr-2 text-sm selectable-item"
+      class="font-mono cursor-pointer relative z-10 rounded whitespace-nowrap flex items-center pr-2 text-sm select-none selectable-item"
       :class="{
         selected
       }"
@@ -167,6 +166,7 @@ export default defineComponent({
         paddingLeft: depth * 15 + 4 + 'px'
       }"
       @click="select()"
+      @dblclick="toggle()"
     >
       <!-- arrow wrapper for better hit box -->
       <span

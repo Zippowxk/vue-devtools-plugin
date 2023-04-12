@@ -1,10 +1,12 @@
-import { BackendContext } from '@vue-devtools/app-backend-api';
+import { BackendContext, AppRecord } from '@vue-devtools/app-backend-api';
 import { App, ID, TimelineEventOptions } from '@vue/devtools-api';
 export declare function setupTimeline(ctx: BackendContext): void;
-export declare function addBuiltinLayers(app: App, ctx: BackendContext): void;
+export declare function addBuiltinLayers(appRecord: AppRecord, ctx: BackendContext): void;
 export declare function sendTimelineLayers(ctx: BackendContext): Promise<void>;
-export declare function addTimelineEvent(options: TimelineEventOptions, app: App, ctx: BackendContext): void;
+export declare function addTimelineEvent(options: TimelineEventOptions, app: App, ctx: BackendContext): Promise<void>;
+export declare const dateThreshold: number;
+export declare const perfTimeDiff: number;
 export declare function clearTimeline(ctx: BackendContext): Promise<void>;
 export declare function sendTimelineEventData(id: ID, ctx: BackendContext): Promise<void>;
 export declare function removeLayersForApp(app: App, ctx: BackendContext): void;
-export declare function sendTimelineLayerEvents(appId: number, layerId: string, ctx: BackendContext): void;
+export declare function sendTimelineLayerEvents(appId: string, layerId: string, ctx: BackendContext): void;

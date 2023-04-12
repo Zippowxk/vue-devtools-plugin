@@ -1,6 +1,9 @@
-export declare type Job = () => Promise<void>;
+export interface Job {
+    id: string;
+    fn: () => Promise<void>;
+}
 export declare class JobQueue {
     jobs: Job[];
     currentJob: Job;
-    queue(job: Job): Promise<void>;
+    queue(id: string, fn: Job['fn']): Promise<void>;
 }

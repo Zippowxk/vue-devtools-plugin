@@ -8,9 +8,11 @@ function getComponentInstanceFromElement(element) {
 }
 exports.getComponentInstanceFromElement = getComponentInstanceFromElement;
 function getRootElementsFromComponentInstance(instance) {
-    if (util_1.isFragment(instance)) {
+    if ((0, util_1.isFragment)(instance)) {
         return getFragmentRootElements(instance.subTree);
     }
+    if (!instance.subTree)
+        return [];
     return [instance.subTree.el];
 }
 exports.getRootElementsFromComponentInstance = getRootElementsFromComponentInstance;
@@ -41,14 +43,17 @@ function getInstanceOrVnodeRect(instance) {
         // @TODO: Find position from instance or a vnode (for functional components).
         return;
     }
-    if (!shared_utils_1.inDoc(el)) {
+    if (!(0, shared_utils_1.inDoc)(el)) {
         return;
     }
-    if (util_1.isFragment(instance)) {
+    if ((0, util_1.isFragment)(instance)) {
         return addIframePosition(getFragmentRect(instance.subTree), getElWindow(el));
     }
     else if (el.nodeType === 1) {
         return addIframePosition(el.getBoundingClientRect(), getElWindow(el));
+    }
+    else if (instance.subTree.component) {
+        return getInstanceOrVnodeRect(instance.subTree.component);
     }
 }
 exports.getInstanceOrVnodeRect = getInstanceOrVnodeRect;
@@ -59,7 +64,7 @@ function createRect() {
         left: 0,
         right: 0,
         get width() { return rect.right - rect.left; },
-        get height() { return rect.bottom - rect.top; }
+        get height() { return rect.bottom - rect.top; },
     };
     return rect;
 }

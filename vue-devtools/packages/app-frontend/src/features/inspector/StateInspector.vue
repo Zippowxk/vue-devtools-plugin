@@ -2,7 +2,8 @@
 import StateType from './StateType.vue'
 
 import Vue from 'vue'
-import Defer from '@front/mixins/defer'
+import { useDefer } from '@front/util/defer'
+import { getStorage, setStorage } from '@vue-devtools/shared-utils'
 
 const keyOrder = {
   props: 1,
@@ -22,34 +23,41 @@ const keyOrder = {
   refs: 6,
   $attrs: 7,
   attrs: 7,
-  'setup (other)': 8
+  'event listeners': 7,
+  'setup (other)': 8,
 }
+
+const STORAGE_COLLAPSE_ALL = 'state-inspector.collapse-all'
 
 export default {
   components: {
-    StateType
+    StateType,
   },
-
-  mixins: [
-    Defer()
-  ],
 
   props: {
     state: {
       type: Object,
-      required: true
+      required: true,
     },
 
     dimAfter: {
       type: Number,
-      default: -1
+      default: -1,
+    },
+  },
+
+  setup () {
+    const { defer } = useDefer()
+
+    return {
+      defer,
     }
   },
 
   data () {
     return {
       expandedState: {},
-      forceCollapse: null
+      forceCollapse: null,
     }
   },
 
@@ -70,27 +78,26 @@ export default {
     highDensity () {
       const pref = this.$shared.displayDensity
       return (pref === 'auto' && this.totalCount > 12) || pref === 'high'
-    }
+    },
   },
 
   watch: {
-    state () {
-      this.forceCollapse = null
-    }
+    state: {
+      handler () {
+        this.forceCollapse = null
+        if (getStorage(STORAGE_COLLAPSE_ALL)) {
+          this.setExpandToAll(false)
+        }
+      },
+      immediate: true,
+    },
   },
 
   methods: {
     toggle (dataType, currentExpanded, event = null) {
-      if (event) {
-        if (event.ctrlKey || event.metaKey) {
-          this.setExpandToAll(false)
-          this.$emit('collapse-all')
-          return
-        } else if (event.shiftKey) {
-          this.setExpandToAll(true)
-          this.$emit('expand-all')
-          return
-        }
+      if (event?.shiftKey) {
+        this.setExpandToAll(!currentExpanded)
+        return
       }
       Vue.set(this.expandedState, dataType, !currentExpanded)
     },
@@ -100,8 +107,10 @@ export default {
         this.forceCollapse = value ? 'expand' : 'collapse'
         Vue.set(this.expandedState, key, value)
       })
-    }
-  }
+      this.$emit(value ? 'expand-all' : 'collapse-all')
+      setStorage(STORAGE_COLLAPSE_ALL, !value)
+    },
+  },
 }
 </script>
 

@@ -34,7 +34,7 @@ class ComponentPicker {
         window.removeEventListener('mouseleave', this.cancelEvent, true);
         window.removeEventListener('mousedown', this.cancelEvent, true);
         window.removeEventListener('mouseup', this.cancelEvent, true);
-        highlighter_1.unHighlight();
+        (0, highlighter_1.unHighlight)();
     }
     /**
      * Highlights a component on element mouse over
@@ -43,20 +43,32 @@ class ComponentPicker {
         this.cancelEvent(e);
         const el = e.target;
         if (el) {
-            this.selectedInstance = await this.ctx.api.getElementComponent(el);
+            await this.selectElementComponent(el);
         }
-        highlighter_1.unHighlight();
+        (0, highlighter_1.unHighlight)();
         if (this.selectedInstance) {
-            highlighter_1.highlight(this.selectedInstance, this.ctx);
+            (0, highlighter_1.highlight)(this.selectedInstance, this.selectedBackend, this.ctx);
         }
+    }
+    async selectElementComponent(el) {
+        for (const backend of this.ctx.backends) {
+            const instance = await backend.api.getElementComponent(el);
+            if (instance) {
+                this.selectedInstance = instance;
+                this.selectedBackend = backend;
+                return;
+            }
+        }
+        this.selectedInstance = null;
+        this.selectedBackend = null;
     }
     /**
      * Selects an instance in the component view
      */
     async elementClicked(e) {
         this.cancelEvent(e);
-        if (this.selectedInstance) {
-            const parentInstances = await this.ctx.api.walkComponentParents(this.selectedInstance);
+        if (this.selectedInstance && this.selectedBackend) {
+            const parentInstances = await this.selectedBackend.api.walkComponentParents(this.selectedInstance);
             this.ctx.bridge.send(shared_utils_1.BridgeEvents.TO_FRONT_COMPONENT_PICK, { id: this.selectedInstance.__VUE_DEVTOOLS_UID__, parentIds: parentInstances.map(i => i.__VUE_DEVTOOLS_UID__) });
         }
         else {

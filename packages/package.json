@@ -1,6 +1,6 @@
 {
   "name": "vue-vconsole-devtools",
-  "version": "1.0.5",
+  "version": "1.0.7",
   "description": "vConsole vue-devtools plugin. Debug vue anywhere",
   "main": "./dist/vue_plugin.js",
   "repository": {

@@ -8,7 +8,7 @@ import Devtools from './debug/vue_plugin.js'
 // Devtools.initPlugin(new VConsole());
 window.__VUE_DEVTOOLS_GLOBAL_HOOK__.emit('init', Vue)
 Devtools.initPlugin(new VConsole());
-
+console.log(process)
 new Vue({
   render: (h) => h(App),
 }).$mount("#app");

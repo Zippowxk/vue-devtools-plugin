@@ -82,15 +82,18 @@ window.__VUE_DEVTOOLS_GLOBAL_HOOK__.emit("init",Vue)
    ```
 ### 更新日志
 
+#### 1.0.9
+1. 兼容了vConsole 3.14之后的新版本
+2. 更新Vue-devtools 6.5.0 支持更新的功能
+3. 更新之后解决了遗留的一些问题
+
 #### v1.0.5
 1. 兼容CDN引入，优化引入方式
 2. 兼容ES6 解构运算符引入方式
 
-
 #### v1.0.0
 1. 重大更新，升级Vue-devtools V6
 2. 兼容Vue3
-
 
 #### v0.0.7
 1. 重要更新，解决iOS微信端浏览器兼容性问题
@@ -99,44 +102,9 @@ window.__VUE_DEVTOOLS_GLOBAL_HOOK__.emit("init",Vue)
 #### v0.0.3
 1. 优化了打包体积
 
-### TODO:
-
-1. 支持Vue.js 3 ✅
-2. 开发脱离vConsole版本
-3. webpack plugin
-
 **### Sample code**
 
 [Github](https://github.com/Zippowxk/Vue-vConsole-devtools/dev)
 
 
-
 欢迎添加微信 **OmniBug **探讨交流，Email: zippowangxinkai@gmail.com
-
-**## Contributors ✨**
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-
-<!-- prettier-ignore-start -->
-
-<!-- markdownlint-disable -->
-
-<table>
-
-  <tr>
-
-​    <td align="center"><a href="https://github.com/Zippowxk"><img src="https://avatars.githubusercontent.com/u/5326755?v=4?s=100" width="100px;" alt=""/><br /><sub><b>wangxinkai</b></sub></a><br /><a href="https://github.com/Zippowxk/vue-router-keep-alive-helper/commits?author=Zippowxk" title="Code">💻</a> <a href="https://github.com/Zippowxk/vue-router-keep-alive-helper/commits?author=Zippowxk" title="Documentation">📖</a></td>
-
-  </tr>
-
-</table>
-
-
-
-<!-- markdownlint-restore -->
-
-<!-- prettier-ignore-end -->
-
-
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->

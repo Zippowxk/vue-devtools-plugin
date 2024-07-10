@@ -1,6 +1,6 @@
-**# Vue-vConsole-devtools**
+**# Vue-devtools-plugin**
 
-`Vue-vConsole-devtools` 是一款`vConsole`插件，把`Vue.js`官方调试工具`vue-devtools`移植到移动端，可以直接在移动端查看调试`Vue.js`应用
+`Vue-devtools-plugin` 是一款`vConsole` & `Eruda` 插件，把`Vue.js`官方调试工具`vue-devtools`移植到移动端，可以直接在移动端查看调试`Vue.js`应用
 
 ### Preview
 [CodePen Sample Code for Vue2](https://codepen.io/zippowxk/pen/RwVBgmp)
@@ -10,33 +10,49 @@
 桌面使用：
 
 ![Desktop](./docs/desktop.gif)
-
+![Desktop](./docs/eruda-desktop.gif)
 移动端使用：
 
 ![Mobile](./docs/mobile.gif)
 ### 为什么需要本插件：
 
-1. 在Safari和移动端无法直接调试Vue.js
-2. Electron版本的devtools安装和远程调试配置非常麻烦
+1. 在任意浏览器和移动端上查看调试`Vue.js`应用
+2. 无需在浏览器安装`Vue-devtools`插件
+3. 支持Vue2 & Vue3
 
 ### 功能
 
 1. 移植了官方Vue-devtools的全部功能
 2. 针对移动端优化了部分操作方式
 3. 现已支持微信端内浏览器
+
 ### 使用方式
 #### NPM方式引入
-1. ```npm i -s vue-vconsole-devtools```
-
+1. vConsole: ```yarn add vue-vconsole-devtools --dev```
+   Eruda: ```yarn add eruda-vue-devtools --dev```
 2. 在工程中入口文件 （如`src/main.js`）
 
 ```javascript
 ...
+// vconsole
 import VConsole from "vconsole";
-import { initPlugin } from 'vue-vconsole-devtools'
+import { initPlugin } from 'vue-vconsole-devtools' // for vconsole
+
 initPlugin(new VConsole()); // 需要在创建Vue根实例前调用
 ...
 ```
+
+```javascript
+...
+// eruda
+import { initPlugin } from 'eruda-vue-devtools' // for eruda
+import eruda from 'eruda' // 引入工具包
+
+eruda.init() // 初始化
+initPlugin(eruda); // 需要在创建Vue根实例前调用
+...
+```
+
 3. 如果devtools中没有加载出你的应用 请添加如下代码
 
 ```javascript

@@ -3,29 +3,11 @@ const Path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
-module.exports = {
+const common = {
   mode: "production",
   // mode: "development",
   devtool: false,
-  entry: {
-    vue_plugin: Path.resolve(__dirname, "./packages/index.js")
-    // inject: Path.resolve(__dirname, './packages/inject.js')
-  },
-  // experiments: {
-  //   outputModule: true,
-  // },
-  output: {
-    path:  process.env.NODE_ENV == 'production' ? Path.resolve(__dirname, "./packages/dist") :  Path.resolve(__dirname, "./dev/src/debug"),
-    filename: "[name].js",
-    library: "vueVconsoleDevtools",
-    libraryTarget: "umd",
-    umdNamedDefine: true,
-    globalObject: 'this',
-    // path: Path.resolve(__dirname, "./dev-vue3/src/debug"),
-    // filename: "vue.devtools.vconsole.js",
-    // module: true,
-  },
-  externals:['vue'],
+  externals: ['vue'],
   module: {
     rules: [
       // {
@@ -98,14 +80,41 @@ module.exports = {
   resolve: {
     extensions: [".js", ".vue"],
     alias: {
-      // "@front": "app-frontend/vue3/src",
-      // "@back": "app-backend/vue3/src",
-      // "@utils": "shared-utils/vue3/src",
       '@front': '@vue-devtools/app-frontend/src',
-      // '@back': '@vue-devtools/app-backend-vue/lib',
       '@back': '@vue-devtools/app-backend-core/lib',
       '@utils': '@vue-devtools/shared-utils/lib',
     },
     symlinks: false,
   },
-};
+}
+
+//build vconsole & eruda plugin both
+module.exports = [
+{
+  entry: {
+    vue_plugin: Path.resolve(__dirname, "./packages/vconsole/index.js")
+  },
+  output: {
+    path: process.env.NODE_ENV == 'production' ? Path.resolve(__dirname, "./packages/vconsole/dist") : Path.resolve(__dirname, "./dev/src/debug/vconsole/"),
+    filename: "[name].js",
+    library: "vueVconsoleDevtools",
+    libraryTarget: "umd",
+    umdNamedDefine: true,
+    globalObject: 'this',
+  },
+  ...common,
+},
+{
+  entry: {
+    vue_plugin: Path.resolve(__dirname, "./packages/eruda/index.js")
+  },
+  output: {
+    path: process.env.NODE_ENV == 'production' ? Path.resolve(__dirname, "./packages/eruda/dist") : Path.resolve(__dirname, "./dev/src/debug/eruda/"),
+    filename: "[name].js",
+    library: "eruda_vue_devtools",
+    libraryTarget: "umd",
+    umdNamedDefine: true,
+    globalObject: 'this',
+  },
+  ...common,
+}]

@@ -1,0 +1,28 @@
+{
+  "name": "eruda-vue-devtools",
+  "version": "1.0.1",
+  "description": "An Eruda vue-devtools plugin. Debug Vue.js anywhere",
+  "main": "./dist/vue_plugin.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zippowxk/vue-vconsole-devtools.git"
+  },
+  "keywords": [
+    "vue-devtools",
+    "vue",
+    "debug",
+    "vue.js",
+    "plugin",
+    "eruda",
+    "eruda-plugin",
+    "cross-platform",
+    "vue3",
+    "vue2"
+  ],
+  "author": "xinkai.wang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Zippowxk/vue-vconsole-devtools/issues"
+  },
+  "homepage": "https://github.com/Zippowxk/vue-vconsole-devtools#readme"
+}

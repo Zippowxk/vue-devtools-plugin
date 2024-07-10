@@ -2,7 +2,9 @@ import Vue from "vue";
 import App from "./App.vue";
 import eruda from 'eruda' // 引入工具包
 eruda.init() // 初始化
-import Devtools from '../../packages/dist/vue_plugin.js'
+// import Devtools from '../../packages/eruda/dist/vue_plugin.js'
+import Devtools from './debug/eruda/vue_plugin.js'
+
 // import VConsole from "vconsole";
 // import Devtools from 'vue-vconsole-devtools'
 

@@ -1,8 +1,7 @@
 {
-  "name": "vue-vconsole-devtools-project",
+  "name": "vue-devtools-plugins",
   "version": "0.0.2",
-  "description": "vConsole vue-devtools plugin. Debug vue anywhere",
-  "main": "./dist/vue_plugin.js",
+  "description": "vue-devtools plugin for vConsole & Eruda. Debug Vue.js anywhere",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "cross-env NODE_ENV=production webpack",
@@ -23,7 +22,11 @@
     "vue",
     "debug",
     "vue.js",
-    "plugin"
+    "plugin",
+    "eruda",
+    "eruda-plugin",
+    "vconsole-plugin",
+    "cross-platform"
   ],
   "author": "xinkai.wang",
   "license": "MIT",

@@ -1,5 +1,5 @@
 yarn build
-cd packages
+cd packages/vconsole
 version=$(npm version patch)
 npm publish
 cd ..

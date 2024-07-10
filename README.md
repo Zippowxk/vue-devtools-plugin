@@ -2,6 +2,8 @@
 
 `Vue-devtools-plugin` 是一款`vConsole` & `Eruda` 插件，把`Vue.js`官方调试工具`vue-devtools`移植到移动端，可以直接在移动端查看调试`Vue.js`应用
 
+### [For Eruda](./packages/eruda/README.md)
+
 ### Preview
 [CodePen Sample Code for Vue2](https://codepen.io/zippowxk/pen/RwVBgmp)
 
